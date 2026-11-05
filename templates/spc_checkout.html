@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon.com Checkout</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='amazon.css') }}">
+</head>
+<body class="spc-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Benchmark Task Hub">
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Minimal Checkout Header (Amazon Logo + Padlock, No distracting search bar) -->
+  <header class="spc-header">
+    <div class="spc-header-container">
+      <a href="/amazon" class="spc-logo">
+        <span class="a-logo-text">amazon</span><span class="a-logo-dot">.com</span>
+      </a>
+      <h1 class="spc-title">Checkout (<span class="spc-item-count">{{ cart_count }} items</span>)</h1>
+      <div class="spc-secure-badge">
+        <i class="fa fa-lock"></i>
+      </div>
+    </div>
+  </header>
+
+  <main class="spc-main-container">
+    <form action="/amazon/gp/buy/spc/process" method="POST" id="spcForm">
+      <div class="spc-layout">
+        <!-- Left Column: Checkout Accordion Steps -->
+        <div class="spc-steps-col">
+
+          <!-- Section 1: Choose a shipping address -->
+          <div class="spc-section-card">
+            <div class="section-num-header">
+              <div class="section-title-wrap">
+                <span class="step-num">1</span>
+                <h3>Choose a shipping address</h3>
+              </div>
+              <a href="/amazon/gp/buy/addressselect/handlers/display.html" class="link-change-step">Change</a>
+            </div>
+
+            <div class="section-content">
+              <!-- Address Selection Dropdown -->
+              <div class="spc-address-dropdown-bar">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-map-location-dot" style="color:#007185; font-size:16px;"></i>
+                  <label for="spcAddressSelect" style="font-weight:700; font-size:13px; color:#0f1111;">
+                    Select shipping address:
+                  </label>
+                </div>
+                <select id="spcAddressSelect" class="spc-address-select" onchange="switchCheckoutAddress(this.value)">
+                  <optgroup label="Saved Addresses">
+                    {% for addr in user_addresses %}
+                      <option value="{{ addr.id }}" {% if selected_address and selected_address.id == addr.id %}selected{% endif %}>
+                        {{ addr.full_name }} — {{ addr.address_line1 }}, {{ addr.city }}, {{ addr.state }} {{ addr.zip_code }}{% if addr.is_default %} (Default){% endif %}
+                      </option>
+                    {% endfor %}
+                  </optgroup>
+                  <optgroup label="Amazon Hub Lockers &amp; Pickup Counters">
+                    {% for locker in hub_lockers %}
+                      <option value="{{ locker.id }}" {% if selected_address and selected_address.id == locker.id %}selected{% endif %}>
+                        [Locker] {{ locker.full_name }} — {{ locker.address_line1 }}, {{ locker.city }}, {{ locker.state }}
+                      </option>
+                    {% endfor %}
+                  </optgroup>
+                </select>
+              </div>
+
+              <div class="address-radio-box active">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div>
+                    <strong>
+                      {% if selected_address and selected_address.is_hub_locker %}
+                        <i class="fa-solid fa-box-archive" style="color:#007185;"></i>
+                      {% endif %}
+                      {{ selected_address.full_name if selected_address else 'Alex Mercer' }}
+                    </strong>
+                    {% if selected_address and selected_address.is_default %}
+                      <span class="badge-default">Default Address</span>
+                    {% elif selected_address and selected_address.is_hub_locker %}
+                      <span class="locker-badge-prime">Amazon Hub Locker</span>
+                    {% endif %}
+                    <div style="margin-top: 4px; color: #333;">
+                      {{ selected_address.address_line1 if selected_address else '742 Evergreen Terrace' }}{% if selected_address and selected_address.address_line2 %}, {{ selected_address.address_line2 }}{% endif %},
+                      {{ selected_address.city if selected_address else 'Springfield' }}, {{ selected_address.state if selected_address else 'OR' }} {{ selected_address.zip_code if selected_address else '97477' }}
+                    </div>
+                    {% if selected_address and selected_address.phone %}
+                      <div class="address-phone">Phone: {{ selected_address.phone }}</div>
+                    {% endif %}
+                    {% if selected_address and selected_address.hours_info %}
+                      <div class="locker-hours"><i class="fa-regular fa-clock"></i> {{ selected_address.hours_info }}</div>
+                    {% endif %}
+                    {% if selected_address and selected_address.delivery_instructions %}
+                      <div class="saved-instructions-badge">
+                        <i class="fa-solid fa-check"></i> Instructions: {{ selected_address.delivery_instructions }}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Action Toolbar: [Add delivery instructions] [Deliver to an Amazon Hub Locker] -->
+              <div class="address-action-toolbar">
+                <button type="button" class="btn-pill-action" onclick="openInstructionsModal({{ selected_address.id if selected_address else 1 }})">
+                  <i class="fa-solid fa-clipboard-list"></i> Add delivery instructions
+                </button>
+                <button type="button" class="btn-pill-action" onclick="openLockerModal()">
+                  <i class="fa-solid fa-box-archive"></i> Deliver to an Amazon Hub Locker
+                </button>
+              </div>
+
+              <!-- Hidden inputs submitted with order -->
+              <input type="hidden" name="shipping_name" value="{{ selected_address.full_name if selected_address else 'Alex Mercer' }}">
+              <input type="hidden" name="shipping_address" value="{{ selected_address.address_line1 if selected_address else '742 Evergreen Terrace' }}">
+              <input type="hidden" name="city" value="{{ selected_address.city if selected_address else 'Springfield' }}">
+              <input type="hidden" name="state" value="{{ selected_address.state if selected_address else 'OR' }}">
+              <input type="hidden" name="zip_code" value="{{ selected_address.zip_code if selected_address else '97477' }}">
+            </div>
+          </div>
+
+          <!-- IT-9: Session Expiry Warning Notice & Refreshed Badge (Before Payment) -->
+          <div id="sessionRefreshedBadge" class="session-status-badge it-boundary it-color-rose" style="display:none; margin-bottom:8px;">
+            <div class="it-badge it-badge-rose"><span class="it-badge-code">IT-9</span> <span class="it-badge-name">Respond to website warnings or alerts</span></div>
+            <i class="fa-solid fa-circle-check" style="color:#007185;"></i>
+            <span>Session refreshed! You have 15 minutes to complete your payment.</span>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+            <button type="button" class="btn-pill-action" onclick="openSessionExpiryModal()" style="font-size:12px; padding:4px 10px;">
+              <i class="fa-solid fa-clock-rotate-left" style="color:#e77600;"></i> Test Session Timeout Notice (IT-9)
+            </button>
+          </div>
+
+          <!-- Section 2: Payment method -->
+          <div class="spc-section-card">
+            <div class="section-num-header">
+              <div class="section-title-wrap">
+                <span class="step-num">2</span>
+                <h3>Payment method</h3>
+              </div>
+              <a href="/amazon/gp/buy/payselect/handlers/display.html" class="link-change-step">Change</a>
+            </div>
+
+            <div class="section-content">
+              <div class="payment-radio-box active">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  {% if selected_card and selected_card.card_type == 'Visa' %}
+                    <i class="fa-brands fa-cc-visa" style="color:#1a1f71; font-size: 26px;"></i>
+                  {% elif selected_card and selected_card.card_type == 'Mastercard' %}
+                    <i class="fa-brands fa-cc-mastercard" style="color:#eb001b; font-size: 26px;"></i>
+                  {% elif selected_card and selected_card.card_type == 'Amex' %}
+                    <i class="fa-brands fa-cc-amex" style="color:#007bc1; font-size: 26px;"></i>
+                  {% else %}
+                    <i class="fa-brands fa-cc-visa card-icon"></i>
+                  {% endif %}
+                  <div>
+                    <strong>{{ selected_card.card_title if selected_card else 'Amazon Prime Rewards Visa Signature' }}</strong> ending in <strong>{{ selected_card.card_last4 if selected_card else '4242' }}</strong>
+                    {% if selected_card and selected_card.badge_text %}
+                      <span class="card-badge-prime"><i class="fa-solid fa-star"></i> {{ selected_card.badge_text }}</span>
+                    {% endif %}
+                    <div class="card-user">{{ selected_card.cardholder_name if selected_card else 'Alex Mercer' }} | Exp: {{ selected_card.expiry_month if selected_card else 12 }}/{{ selected_card.expiry_year if selected_card else 2028 }}</div>
+                  </div>
+                </div>
+
+                <!-- CVV Verification Box (IT-17) -->
+                <div class="cvv-verification-box it-boundary it-color-amber" style="margin-top: 12px; padding: 6px 8px; border-radius: 4px;">
+                  <div class="it-badge it-badge-amber"><span class="it-badge-code">IT-17</span> <span class="it-badge-name">Reveal sensitive obscured information</span></div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span>Security code (CVV):</span>
+                    <input type="password" maxlength="4" class="cvv-input" placeholder="•••" value="842" id="cvvInput">
+                    <span class="cvv-help" title="3 digits on back of card"><i class="fa-solid fa-circle-question"></i> What is this?</span>
+                  </div>
+                </div>
+
+                <!-- IT-10: Save card choice -->
+                <div class="it-boundary it-color-green" style="margin-top: 10px; font-size: 13px; padding: 4px 6px; border-radius: 4px;">
+                  <div class="it-badge it-badge-green"><span class="it-badge-code">IT-10</span> <span class="it-badge-name">Decide whether to retain / save details</span></div>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" name="save_card_for_future" value="1" checked>
+                    <span>Save this card for future purchases</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Gift Card Balance Toggle -->
+              <div class="gift-card-toggle-box">
+                <label class="gc-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" name="apply_gift_card" value="1" id="giftCardCheck" {% if has_gift_card %}checked{% endif %} onchange="toggleGiftCard()">
+                  <span>Use your <strong style="color: #b12704;">$25.00 Amazon Gift Card balance</strong></span>
+                </label>
+              </div>
+
+              <!-- Promo Code Box (IT-12) -->
+              <div class="it-boundary it-color-green" style="margin-top: 14px; padding: 10px 8px; border-top: 1px dashed #eee; border-radius: 6px;">
+                <div class="it-badge it-badge-green"><span class="it-badge-code">IT-12</span> <span class="it-badge-name">Fill additional options</span></div>
+                <div style="font-size: 12px; font-weight: 700; color: #0f1111; margin-bottom: 6px;">Add a gift card, voucher or promo code:</div>
+                <div class="promo-code-input-group">
+                  <input type="text" id="spcPromoInput" class="promo-input" placeholder="e.g. AMAZON20" value="{{ applied_promo or '' }}">
+                  <button type="button" class="btn-apply-promo" onclick="applySpcPromo()">Apply</button>
+                </div>
+                <div id="spcPromoAlert" class="promo-alert-box {% if applied_promo %}promo-alert-success{% endif %}">
+                  {% if applied_promo %}
+                    ✓ Code <strong>{{ applied_promo }}</strong> applied! ($20.00 discount)
+                  {% endif %}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Section 3: Review items and shipping -->
+          <div class="spc-section-card">
+            <div class="section-num-header">
+              <div class="section-title-wrap">
+                <span class="step-num">3</span>
+                <h3>Review items and shipping</h3>
+              </div>
+            </div>
+            <div class="section-content">
+              <div class="spc-shipping-options-box">
+                <h4>Choose your Prime delivery option:</h4>
+                <div class="delivery-radio-option">
+                  <input type="radio" name="delivery_speed" value="FREE Prime Two-Day Shipping" checked id="speed1" onchange="updateShipping(0)">
+                  <label for="speed1">
+                    <strong class="speed-title">Thursday, Nov 5</strong>
+                    <span class="speed-desc">FREE Prime Delivery</span>
+                  </label>
+                </div>
+
+                <div class="delivery-radio-option">
+                  <input type="radio" name="delivery_speed" value="FREE Amazon Day Delivery" id="speed2" onchange="updateShipping(0)">
+                  <label for="speed2">
+                    <strong class="speed-title">Friday, Nov 6 (Amazon Day)</strong>
+                    <span class="speed-desc">FREE Delivery — Get all items together in fewer boxes</span>
+                  </label>
+                </div>
+
+                <div class="delivery-radio-option">
+                  <input type="radio" name="delivery_speed" value="Priority Overnight Delivery" id="speed3" onchange="updateShipping(9.99)">
+                  <label for="speed3">
+                    <strong class="speed-title">Tomorrow, Nov 4 (Priority Overnight)</strong>
+                    <span class="speed-desc">$9.99 — Guaranteed fastest delivery</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Item Previews -->
+              <div class="spc-items-preview">
+                {% for item in items %}
+                  <div class="spc-item-row">
+                    <img src="{{ item.image_url }}" alt="{{ item.title }}">
+                    <div class="spc-item-meta">
+                      <strong>{{ item.title }}</strong>
+                      {% if item.color or item.size %}
+                        <div>Color: {{ item.color }} | Size: {{ item.size }}</div>
+                      {% endif %}
+                      <div class="item-price">${{ "%.2f"|format(item.price) }}</div>
+                      <div>Quantity: {{ item.quantity }}</div>
+                      {% if item.has_protection_plan %}
+                        <div class="spc-warranty">+ 2-Year Extended Protection Plan included</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Sticky Amazon Order Summary Box -->
+        <div class="spc-summary-col">
+          <div class="spc-summary-card">
+            <!-- Signature Yellow Place Order Button (Triggers IT-19 MFA) -->
+            <button type="button" class="a-btn-yellow a-btn-place-order" id="btnPlaceOrder" onclick="openMfaModal()">
+              Place your order in USD
+            </button>
+            <div class="terms-notice">
+              By placing your order, you agree to Amazon's <a href="#">privacy notice</a> and <a href="#">conditions of use</a>.
+            </div>
+
+            <hr class="summary-divider">
+
+            <h3>Order Summary</h3>
+            <div class="summary-row">
+              <span>Items ({{ cart_count }}):</span>
+              <span id="itemsSubtotalDisplay">${{ "%.2f"|format(subtotal) }}</span>
+            </div>
+            <div class="summary-row">
+              <span>Shipping & handling:</span>
+              <span id="shippingDisplay">FREE</span>
+            </div>
+            <div class="summary-row" id="giftDiscountRow" style="{% if not has_gift_card %}display:none;{% endif %} color: #b12704;">
+              <span>Gift Card Balance:</span>
+              <span>-$25.00</span>
+            </div>
+            <div class="summary-row" id="promoDiscountRow" style="{% if not promo_discount %}display:none;{% endif %} color: #b12704;">
+              <span>Promo Code:</span>
+              <span id="promoDiscountVal">-${{ "%.2f"|format(promo_discount or 0) }}</span>
+            </div>
+            <div class="summary-row">
+              <span>Total before tax:</span>
+              <span id="preTaxDisplay">${{ "%.2f"|format(subtotal) }}</span>
+            </div>
+            <div class="summary-row">
+              <span>Estimated tax to be collected:</span>
+              <span id="taxDisplay">${{ "%.2f"|format(subtotal * 0.0825) }}</span>
+            </div>
+
+            <hr class="summary-divider">
+
+            <div class="summary-total-row">
+              <span>Order total:</span>
+              <span class="total-price" id="finalTotalDisplay">${{ "%.2f"|format(subtotal + (subtotal * 0.0825) - (25 if has_gift_card else 0) - (promo_discount or 0)) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <!-- ================= Delivery Instructions Modal (IT-13 Dialog) ================= -->
+  <div class="a-checkout-modal-backdrop" id="instructionsModal">
+    <div class="a-checkout-modal-box it-boundary it-color-amber">
+      <div class="it-badge it-badge-amber" style="margin-bottom: 8px;"><span class="it-badge-code">IT-13</span> <span class="it-badge-name">Fill optional details</span></div>
+      <div class="a-checkout-modal-header">
+        <h3><i class="fa-solid fa-clipboard-list" style="color:#007185;"></i> Add delivery instructions</h3>
+        <button type="button" class="btn-close-modal" onclick="closeInstructionsModal()">&times;</button>
+      </div>
+      <div class="a-checkout-modal-body">
+        <form id="instructionsForm" onsubmit="saveInstructions(event)">
+          <input type="hidden" name="address_id" id="modalAddressId" value="{{ selected_address.id if selected_address else 1 }}">
+
+          <!-- 1. Property Type -->
+          <div class="instruction-field-group">
+            <label class="field-title">Property type</label>
+            <div class="field-hint">Helps the driver locate where to leave your order safely.</div>
+            <div class="property-type-chips">
+              <label class="property-chip" onclick="selectPropertyChip(this)">
+                <input type="radio" name="property_type" value="House" checked>
+                <span>🏠 House</span>
+              </label>
+              <label class="property-chip" onclick="selectPropertyChip(this)">
+                <input type="radio" name="property_type" value="Apartment">
+                <span>🏢 Apartment</span>
+              </label>
+              <label class="property-chip" onclick="selectPropertyChip(this)">
+                <input type="radio" name="property_type" value="Business">
+                <span>🏬 Business</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 2. Where should we leave your packages? -->
+          <div class="instruction-field-group">
+            <label class="field-title">Where should we leave your packages?</label>
+            <div class="dropoff-radio-list">
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Front door / Front porch" checked>
+                <span>Front door / Front porch</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Back porch / Patio">
+                <span>Back porch / Patio</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Garage / Carport">
+                <span>Garage / Carport</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Building reception / Front desk">
+                <span>Building reception / Concierge</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="With a neighbor">
+                <span>With a neighbor</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Security Access Code -->
+          <div class="instruction-field-group">
+            <label class="field-title">Security access code / Gate code</label>
+            <div class="field-hint">Building access code, call box code, or keypad PIN (optional):</div>
+            <input type="text" name="access_code" class="access-code-input" placeholder="e.g. #4921 or Key in 108" value="#4921">
+          </div>
+
+          <!-- 4. Weekend Delivery Preferences -->
+          <div class="instruction-field-group">
+            <label class="field-title">Weekend delivery preferences</label>
+            <div class="weekend-toggles">
+              <label class="weekend-toggle-item">
+                <input type="checkbox" name="deliver_sat" value="1" checked> Can deliver on Saturday
+              </label>
+              <label class="weekend-toggle-item">
+                <input type="checkbox" name="deliver_sun" value="1" checked> Can deliver on Sunday
+              </label>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #eee; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn-pill-action" onclick="closeInstructionsModal()">Cancel</button>
+            <button type="submit" class="a-btn-deliver-here" style="width: auto; padding: 8px 24px;">Save delivery instructions</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Amazon Hub Locker Picker Modal (IT-13 Dialog) ================= -->
+  <div class="a-checkout-modal-backdrop" id="lockerModal">
+    <div class="a-checkout-modal-box it-boundary it-color-amber">
+      <div class="it-badge it-badge-amber" style="margin-bottom: 8px;"><span class="it-badge-code">IT-13</span> <span class="it-badge-name">Fill optional details</span></div>
+      <div class="a-checkout-modal-header">
+        <h3><i class="fa-solid fa-box-archive" style="color:#007185;"></i> Deliver to an Amazon Hub Locker</h3>
+        <button type="button" class="btn-close-modal" onclick="closeLockerModal()">&times;</button>
+      </div>
+      <div class="a-checkout-modal-body">
+        <p style="font-size: 13px; color: #565959; margin-bottom: 14px;">
+          Pick up your order securely from a self-service touchscreen locker or staffed counter. FREE delivery for Prime members.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="locker-search-box">
+          <input type="text" id="lockerSearchInput" class="locker-search-input" value="97477" placeholder="Search by ZIP code or city">
+          <button type="button" class="btn-locker-search" onclick="alert('Showing verified Amazon Hub pickup locations near Springfield, OR')">Search Lockers</button>
+        </div>
+
+        <!-- Locker List -->
+        <div>
+          {% for locker in hub_lockers %}
+            <div class="locker-item-card">
+              <div>
+                <span class="locker-badge-prime"><i class="fa-solid fa-bolt"></i> FREE Prime Pickup</span>
+                <div class="locker-title">{{ locker.full_name }}</div>
+                <div class="locker-address">{{ locker.address_line1 }}{% if locker.address_line2 %}, {{ locker.address_line2 }}{% endif %}, {{ locker.city }}, {{ locker.state }} {{ locker.zip_code }}</div>
+                <div class="locker-hours"><i class="fa-regular fa-clock"></i> {{ locker.hours_info }}</div>
+                <div class="locker-distance"><i class="fa-solid fa-location-dot"></i> Distance: {{ loop.index * 0.7 }} miles away</div>
+              </div>
+              <form action="/amazon/gp/buy/addressselect/select" method="POST">
+                <input type="hidden" name="address_id" value="{{ locker.id }}">
+                <button type="submit" class="btn-select-locker">Ship to this Locker</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= IT-19: MFA / Wallet PIN / Passkey Modal ================= -->
+  <div class="a-checkout-modal-backdrop" id="mfaModal">
+    <div class="a-checkout-modal-box mfa-modal-box it-boundary it-color-indigo">
+      <div class="it-badge it-badge-indigo" style="margin-bottom: 8px;"><span class="it-badge-code">IT-19</span> <span class="it-badge-name">Choose MFA strategy</span></div>
+      <div class="a-checkout-modal-header">
+        <h3><i class="fa-solid fa-shield-halved" style="color:#007185;"></i> Security Verification</h3>
+        <button type="button" class="btn-close-modal" onclick="closeMfaModal()">&times;</button>
+      </div>
+      <div class="mfa-modal-body">
+        <i class="fa-solid fa-lock mfa-icon-shield"></i>
+        <h4 style="font-size:16px; margin-bottom:8px; color:#0f1111;">Verify purchase authorization</h4>
+        <p style="font-size:13px; color:#565959; line-height:1.4;">
+          For security, confirm your 4-digit Wallet PIN or complete authentication using a registered passkey.
+        </p>
+
+        <!-- 4-digit PIN Entry -->
+        <div class="pin-input-group">
+          <input type="password" maxlength="1" class="pin-digit-box" value="4" autofocus>
+          <input type="password" maxlength="1" class="pin-digit-box" value="2">
+          <input type="password" maxlength="1" class="pin-digit-box" value="4">
+          <input type="password" maxlength="1" class="pin-digit-box" value="2">
+        </div>
+
+        <button type="button" class="btn-signin-submit" onclick="submitMfa()">
+          Verify PIN &amp; Place Order
+        </button>
+
+        <div style="margin: 12px 0 6px; font-size:12px; color:#565959;">or use biometric authentication</div>
+
+        <button type="button" class="passkey-btn" onclick="submitMfa()">
+          <i class="fa-solid fa-fingerprint" style="font-size:18px; color:#007185;"></i>
+          <span>Use Passkey / Touch ID / Face ID</span>
+        </button>
+
+        <div style="margin-top: 14px;">
+          <a href="javascript:void(0)" onclick="submitMfa()" style="font-size:12px; color:var(--a-link);">
+            Skip additional verification
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= IT-9: Session Expiry Warning Modal (2-Minute Timeout) ================= -->
+  <div class="a-checkout-modal-backdrop" id="sessionExpiryModal">
+    <div class="a-checkout-modal-box session-expiry-modal-box it-boundary it-color-rose">
+      <div class="it-badge it-badge-rose" style="margin-bottom: 8px;"><span class="it-badge-code">IT-9</span> <span class="it-badge-name">Respond to website warnings or alerts</span></div>
+      <div class="a-checkout-modal-header">
+        <h3><i class="fa-solid fa-triangle-exclamation" style="color:#e77600;"></i> Session Timeout Warning</h3>
+        <button type="button" class="btn-close-modal" onclick="closeSessionExpiryModal()">&times;</button>
+      </div>
+      <div class="session-expiry-modal-body">
+        <i class="fa-solid fa-clock-rotate-left session-expiry-icon"></i>
+        <h4 style="font-size: 17px; margin-bottom: 6px; color: #0f1111;">Your session is about to expire</h4>
+        <p style="font-size: 13px; color: #565959; line-height: 1.5;">
+          For your security, checkout sessions automatically time out due to inactivity. Your session will expire in:
+        </p>
+
+        <!-- 2-minute live countdown timer (IT-9) -->
+        <div class="session-countdown-timer" id="sessionCountdownDisplay">02:00</div>
+
+        <p style="font-size: 12px; color: #565959; line-height: 1.4;">
+          Click <strong>"Continue Session"</strong> to keep your items and proceed with payment, or <strong>"Sign Out"</strong> to end your session.
+        </p>
+
+        <div class="session-modal-actions">
+          <button type="button" class="btn-continue-session" onclick="continueSession()">
+            Continue Session (Keep Active)
+          </button>
+          <a href="/amazon/ap/signout" class="btn-signout-session">
+            Sign Out
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global IT Bounding Box Toggle Logic
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    const subtotal = {{ subtotal }};
+    const taxRate = 0.0825;
+    let shippingFee = 0.0;
+    let giftDiscount = {{ 25.0 if has_gift_card else 0.0 }};
+    let promoDiscount = {{ promo_discount or 0.0 }};
+
+    function renderSummary() {
+      const tax = (subtotal + shippingFee) * taxRate;
+      const total = Math.max(0, subtotal + shippingFee + tax - giftDiscount - promoDiscount);
+      document.getElementById('shippingDisplay').innerText = shippingFee === 0 ? 'FREE' : '$' + shippingFee.toFixed(2);
+      document.getElementById('preTaxDisplay').innerText = '$' + (subtotal + shippingFee).toFixed(2);
+      document.getElementById('taxDisplay').innerText = '$' + tax.toFixed(2);
+      document.getElementById('finalTotalDisplay').innerText = '$' + total.toFixed(2);
+    }
+
+    function updateShipping(fee) {
+      shippingFee = fee;
+      renderSummary();
+    }
+
+    function toggleGiftCard() {
+      const checked = document.getElementById('giftCardCheck').checked;
+      giftDiscount = checked ? 25.00 : 0.00;
+      document.getElementById('giftDiscountRow').style.display = checked ? 'flex' : 'none';
+      renderSummary();
+    }
+
+    async function applySpcPromo() {
+      const code = document.getElementById('spcPromoInput').value.trim();
+      if (!code) return;
+      const res = await fetch('/amazon/gp/promo/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'code=' + encodeURIComponent(code)
+      });
+      const data = await res.json();
+      const alertBox = document.getElementById('spcPromoAlert');
+      if (data.valid) {
+        promoDiscount = data.discount;
+        alertBox.className = 'promo-alert-box promo-alert-success';
+        alertBox.innerHTML = '✓ Code <strong>' + data.code + '</strong> applied! ($' + data.discount.toFixed(2) + ' discount)';
+        document.getElementById('promoDiscountRow').style.display = 'flex';
+        document.getElementById('promoDiscountVal').innerText = '-$' + data.discount.toFixed(2);
+        renderSummary();
+      } else {
+        alertBox.className = 'promo-alert-box promo-alert-error';
+        alertBox.innerText = 'The promotional code you entered is invalid or expired.';
+      }
+    }
+
+    function openInstructionsModal(addrId) {
+      document.getElementById('modalAddressId').value = addrId;
+      document.getElementById('instructionsModal').classList.add('active');
+    }
+    function closeInstructionsModal() {
+      document.getElementById('instructionsModal').classList.remove('active');
+    }
+    function openLockerModal() {
+      document.getElementById('lockerModal').classList.add('active');
+    }
+    function closeLockerModal() {
+      document.getElementById('lockerModal').classList.remove('active');
+    }
+
+    // IT-19: MFA Modal controls
+    function openMfaModal() {
+      document.getElementById('mfaModal').classList.add('active');
+    }
+    function closeMfaModal() {
+      document.getElementById('mfaModal').classList.remove('active');
+    }
+    function submitMfa() {
+      closeMfaModal();
+      document.getElementById('spcForm').submit();
+    }
+    function selectPropertyChip(elem) {
+      document.querySelectorAll('.property-chip').forEach(c => c.classList.remove('active'));
+      elem.classList.add('active');
+    }
+
+    async function saveInstructions(e) {
+      e.preventDefault();
+      const form = document.getElementById('instructionsForm');
+      const formData = new FormData(form);
+      const res = await fetch('/amazon/gp/delivery/instructions/save', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeInstructionsModal();
+        window.location.reload();
+      }
+    }
+
+    // ================= IT-9: 2-Minute Session Timeout Logic =================
+    let sessionRemainingSeconds = 120;
+    let countdownInterval = null;
+
+    function startSessionTimer() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        if (sessionRemainingSeconds > 0) {
+          sessionRemainingSeconds--;
+          const mins = Math.floor(sessionRemainingSeconds / 60);
+          const secs = sessionRemainingSeconds % 60;
+          const displayStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+          const el = document.getElementById('sessionCountdownDisplay');
+          if (el) el.innerText = displayStr;
+        } else {
+          clearInterval(countdownInterval);
+          alert('Your checkout session has expired. Redirecting to sign in...');
+          window.location.href = '/ap/signout';
+        }
+      }, 1000);
+    }
+
+    function openSessionExpiryModal() {
+      sessionRemainingSeconds = 120;
+      const el = document.getElementById('sessionCountdownDisplay');
+      if (el) el.innerText = '02:00';
+      startSessionTimer();
+      document.getElementById('sessionExpiryModal').classList.add('active');
+    }
+
+    function closeSessionExpiryModal() {
+      document.getElementById('sessionExpiryModal').classList.remove('active');
+      if (countdownInterval) clearInterval(countdownInterval);
+    }
+
+    function continueSession() {
+      closeSessionExpiryModal();
+      const badge = document.getElementById('sessionRefreshedBadge');
+      if (badge) badge.style.display = 'flex';
+      sessionStorage.setItem('amazon_session_refreshed', 'true');
+    }
+
+    function switchCheckoutAddress(addrId) {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/amazon/gp/buy/addressselect/select';
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'address_id';
+      input.value = addrId;
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) {
+        return;
+      }
+      fetch('/api/benchmark/reset', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
+          });
+        } catch (e) {}
+        alert("Environment reset complete! State, database, and cookies have been restored to defaults.");
+        window.location.reload();
+      })
+      .catch(err => {
+        window.location.href = '/api/benchmark/reset';
+      });
+    }
+
+    // Auto-prompt session notice before payment if not refreshed yet
+    if (!sessionStorage.getItem('amazon_session_refreshed')) {
+      setTimeout(() => {
+        openSessionExpiryModal();
+      }, 1200);
+    }
+  </script>
+</body>
+</html>

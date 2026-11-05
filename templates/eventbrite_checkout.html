@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout | {{ event.title }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='eventbrite.css') }}">
+</head>
+<body class="eb-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Eventbrite Checkout Header -->
+  <header class="eb-header">
+    <a href="/eventbrite" class="eb-logo">
+      <span>eventbrite</span>
+    </a>
+    <div style="font-weight:700; color:var(--eb-navy); font-size:14px;">
+      <i class="fa-solid fa-lock" style="color:var(--eb-success);"></i> Secure Checkout
+    </div>
+  </header>
+
+  <div class="eb-checkout-container">
+    <!-- Left Column: Checkout Forms -->
+    <div>
+      <!-- IT-9: Reservation Hold Countdown Timer -->
+      <div class="eb-timer-bar it-boundary it-color-rose" id="timerBox">
+        <div class="it-badge it-badge-rose">
+          <span class="it-badge-code">IT-9</span>
+          <span class="it-badge-name">Respond to website warnings or alerts</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-clock-rotate-left" style="color:#d1410c;"></i>
+          <span>Time left to complete registration:</span>
+        </div>
+        <span class="eb-timer-clock" id="timerDisplay">08:00</span>
+      </div>
+
+      <form action="/eventbrite/checkout/process" method="POST" id="checkoutForm">
+        <input type="hidden" name="event_id" value="{{ event.id }}">
+        <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
+        <input type="hidden" name="quantity" value="{{ quantity }}">
+        <input type="hidden" name="promo_code" id="hiddenPromoCode" value="{{ promo_code }}">
+
+        <!-- IT-4: Contact & Attendee Information -->
+        <div class="eb-form-card it-boundary it-color-purple">
+          <div class="it-badge it-badge-purple">
+            <span class="it-badge-code">IT-4</span>
+            <span class="it-badge-name">Autofill forms</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:16px; font-weight:800; color:var(--eb-navy);">1. Contact &amp; Attendee Information</h3>
+            <button type="button" class="btn-cookie-decline" onclick="autofillAttendee()" style="color:var(--eb-navy); border-color:#999; font-size:12px; padding:4px 8px;">
+              <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--eb-orange);"></i> Autofill Form
+            </button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div class="eb-form-group">
+              <label class="eb-form-label">First Name *</label>
+              <input type="text" name="first_name" id="ebFirstName" required class="eb-input" value="Alex">
+            </div>
+            <div class="eb-form-group">
+              <label class="eb-form-label">Last Name *</label>
+              <input type="text" name="last_name" id="ebLastName" required class="eb-input" value="Mercer">
+            </div>
+          </div>
+
+          <div class="eb-form-group">
+            <label class="eb-form-label">Email Address (Tickets delivered here) *</label>
+            <input type="email" name="email" id="ebEmail" required class="eb-input" value="alex.mercer@example.com">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div class="eb-form-group">
+              <label class="eb-form-label">Job Title</label>
+              <input type="text" name="job_title" id="ebJobTitle" class="eb-input" value="Senior AI Research Engineer">
+            </div>
+            <div class="eb-form-group">
+              <label class="eb-form-label">Company / Organization</label>
+              <input type="text" name="company" id="ebCompany" class="eb-input" value="Anthropic &amp; Partners">
+            </div>
+          </div>
+        </div>
+
+        <!-- IT-13: Optional Event Details (Survey & Preferences) -->
+        <div class="eb-form-card it-boundary it-color-purple">
+          <div class="it-badge it-badge-purple">
+            <span class="it-badge-code">IT-13</span>
+            <span class="it-badge-name">Fill optional details</span>
+          </div>
+          <h3 style="font-size:16px; font-weight:800; color:var(--eb-navy); margin-bottom:14px;">2. Workshop &amp; Badge Preferences (Optional)</h3>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div class="eb-form-group">
+              <label class="eb-form-label">T-Shirt Size (Complimentary)</label>
+              <select name="tshirt_size" class="eb-select">
+                <option value="M" selected>Men's / Unisex M</option>
+                <option value="L">Men's / Unisex L</option>
+                <option value="XL">Men's / Unisex XL</option>
+                <option value="S">Women's / Unisex S</option>
+              </select>
+            </div>
+            <div class="eb-form-group">
+              <label class="eb-form-label">Dietary Requirements</label>
+              <select name="dietary" class="eb-select">
+                <option value="None" selected>No restrictions</option>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="Gluten-Free">Gluten-Free</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="eb-form-group">
+            <label class="eb-form-label">Preferred Breakout Track</label>
+            <select name="track" class="eb-select">
+              <option value="Agents in Production" selected>Track A: Autonomous Agents in Production</option>
+              <option value="Multi-Agent Systems">Track B: Multi-Agent Orchestration &amp; Architecture</option>
+              <option value="Evaluation & Benchmarking">Track C: Agent Benchmarks, Safety, &amp; Verification</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- IT-12: Additional Options (Ticket Protection Plan) -->
+        <div class="eb-form-card it-boundary it-color-amber">
+          <div class="it-badge it-badge-amber">
+            <span class="it-badge-code">IT-12</span>
+            <span class="it-badge-name">Fill additional options</span>
+          </div>
+          <h3 style="font-size:16px; font-weight:800; color:var(--eb-navy); margin-bottom:12px;">3. Event Registration Protection</h3>
+          <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+            <input type="checkbox" name="has_protection" id="protectionCheckbox" value="1" onchange="updateSummary()" style="margin-top:4px;">
+            <div>
+              <strong style="color:var(--eb-navy); font-size:14px;">Add 100% Refund Protection for $19.00</strong>
+              <p style="font-size:12px; color:var(--eb-subtext); margin-top:2px;">
+                Get a full refund if you cannot attend due to sickness, flight cancellations, mechanical breakdown, or emergency.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <!-- IT-11: Newsletter / Organizer Updates Toggle -->
+        <div class="eb-form-card it-boundary it-color-amber">
+          <div class="it-badge it-badge-amber">
+            <span class="it-badge-code">IT-11</span>
+            <span class="it-badge-name">Choose transactional vs.promotional communications</span>
+          </div>
+          <h3 style="font-size:16px; font-weight:800; color:var(--eb-navy); margin-bottom:12px;">4. Communications Preferences</h3>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; color:var(--eb-text);">
+            <input type="checkbox" name="newsletter_opt_in" value="1" checked>
+            <span>Keep me updated on future summits, AI workshops, and organizer announcements.</span>
+          </label>
+        </div>
+
+        <!-- IT-17 & IT-10: Payment Details & Save Card -->
+        <div class="eb-form-card">
+          <h3 style="font-size:16px; font-weight:800; color:var(--eb-navy); margin-bottom:14px;">5. Payment Method</h3>
+
+          <div class="eb-form-group">
+            <label class="eb-form-label">Name on Card</label>
+            <input type="text" name="cardholder_name" class="eb-input" value="Alex Mercer">
+          </div>
+
+          <div class="eb-form-group">
+            <label class="eb-form-label">Card Number</label>
+            <input type="text" name="card_number" class="eb-input" value="4242 •••• •••• 4242" maxlength="19">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div class="eb-form-group">
+              <label class="eb-form-label">Expiration Date</label>
+              <input type="text" name="card_exp" class="eb-input" value="12/28" placeholder="MM/YY">
+            </div>
+
+            <!-- IT-17: CVV Security Code Mask / Reveal -->
+            <div class="eb-form-group it-boundary it-color-cyan" style="padding:4px 6px;">
+              <div class="it-badge it-badge-cyan">
+                <span class="it-badge-code">IT-17</span>
+                <span class="it-badge-name">Reveal sensitive obscured information</span>
+              </div>
+              <label class="eb-form-label">Security Code (CVV)</label>
+              <div style="display:flex; gap:6px;">
+                <input type="password" id="cvvInput" name="cvv" value="739" maxlength="4" class="eb-input" style="width:100px;">
+                <button type="button" class="btn-cookie-decline" onclick="toggleCVV()" style="color:#333; padding:6px 10px; font-size:12px;">
+                  <i class="fa-solid fa-eye" id="cvvEye"></i> Show
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- IT-10: Save card choice -->
+          <div class="it-boundary it-color-amber" style="margin-top:14px; padding:6px 8px;">
+            <div class="it-badge it-badge-amber">
+              <span class="it-badge-code">IT-10</span>
+              <span class="it-badge-name">Decide whether to retain save option details</span>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--eb-text);">
+              <input type="checkbox" name="save_card" value="1" checked>
+              <span>Save this payment method to my account for faster checkout next time.</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Place Order Trigger (Trigger has no boundary) -->
+        <button type="button" class="btn-eb-primary" id="btnPlaceOrder" onclick="openMFAModal()" style="padding:16px; font-size:16px;">
+          <i class="fa-solid fa-lock"></i> Place Order ($<span id="btnTotalText">{{ "%.2f"|format(total) }}</span>)
+        </button>
+      </form>
+    </div>
+
+    <!-- Right Column: Order Summary Box -->
+    <div>
+      <div class="eb-summary-box">
+        <h3 style="font-size:16px; font-weight:800; color:var(--eb-navy); margin-bottom:14px;">Order Summary</h3>
+        <p style="font-size:13px; font-weight:700; color:var(--eb-text);">{{ event.title }}</p>
+        <p style="font-size:12px; color:var(--eb-subtext); margin-bottom:14px;">{{ event.date_str }} &bull; {{ event.venue_name }}</p>
+
+        <div class="eb-summary-line">
+          <span>{{ ticket.tier_name }} &times; {{ quantity }}</span>
+          <span>${{ "%.2f"|format(ticket.price * quantity) }}</span>
+        </div>
+
+        <div class="eb-summary-line" id="summaryProtectionRow" style="display:none;">
+          <span>Refund Protection Plan</span>
+          <span>$19.00</span>
+        </div>
+
+        {% if promo_discount > 0 %}
+          <div class="eb-summary-line" style="color:#15803d; font-weight:700;">
+            <span>Promo Code ({{ promo_code }})</span>
+            <span>-${{ "%.2f"|format(promo_discount) }}</span>
+          </div>
+        {% endif %}
+
+        <div class="eb-summary-line">
+          <span>Service &amp; Processing Fees</span>
+          <span>$0.00</span>
+        </div>
+
+        <div class="eb-summary-total">
+          <span>Total:</span>
+          <span>$<span id="totalDisplay">{{ "%.2f"|format(total) }}</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IT-19: MFA Strategy Challenge Modal -->
+  <div class="eb-modal-backdrop" id="mfaModal">
+    <div class="eb-modal-box it-boundary it-color-indigo" style="max-width:440px;">
+      <div class="it-badge it-badge-indigo">
+        <span class="it-badge-code">IT-19</span>
+        <span class="it-badge-name">Choose MFA strategy</span>
+      </div>
+      <div class="eb-modal-header">
+        <h3 style="font-size:17px; font-weight:800; color:var(--eb-navy);"><i class="fa-solid fa-shield-halved" style="color:#4338ca;"></i> Security Verification</h3>
+        <button type="button" onclick="closeMFAModal()" style="background:none; border:none; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:var(--eb-subtext); margin-bottom:14px;">
+        To authorize this ticket purchase of $<span id="mfaAmountDisplay">{{ "%.2f"|format(total) }}</span>, select your preferred multi-factor authentication strategy:
+      </p>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer;">
+          <input type="radio" name="mfa_choice" value="passkey" checked>
+          <div>
+            <strong style="color:var(--eb-navy);">Passkey / Device Biometrics</strong>
+            <div style="font-size:11px; color:#6b7280;">Touch ID, Face ID, or Windows Hello</div>
+          </div>
+        </label>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="radio" name="mfa_choice" value="sms">
+          <div>
+            <strong style="color:var(--eb-navy);">SMS One-Time Code</strong>
+            <div style="font-size:11px; color:#6b7280;">Text message to (541) •••-0199</div>
+          </div>
+        </label>
+      </div>
+
+      <button type="button" class="btn-eb-primary" onclick="submitFinalOrder()" style="padding:12px;">
+        Verify &amp; Complete Purchase
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    // IT-9 Reservation Hold Countdown Timer
+    let secondsLeft = 480;
+    setInterval(() => {
+      if (secondsLeft > 0) {
+        secondsLeft--;
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        document.getElementById('timerDisplay').innerText = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+      }
+    }, 1000);
+
+    // IT-4 Autofill
+    function autofillAttendee() {
+      document.getElementById('ebFirstName').value = 'Alex';
+      document.getElementById('ebLastName').value = 'Mercer';
+      document.getElementById('ebEmail').value = 'alex.mercer@example.com';
+      document.getElementById('ebJobTitle').value = 'Senior AI Research Engineer';
+      document.getElementById('ebCompany').value = 'Anthropic & Partners';
+    }
+
+    // IT-17 CVV Toggle
+    function toggleCVV() {
+      const el = document.getElementById('cvvInput');
+      const eye = document.getElementById('cvvEye');
+      if (el.type === 'password') {
+        el.type = 'text';
+        eye.className = 'fa-solid fa-eye-slash';
+      } else {
+        el.type = 'password';
+        eye.className = 'fa-solid fa-eye';
+      }
+    }
+
+    // Pricing calculation
+    const baseTicketTotal = {{ ticket.price * quantity }};
+    const discountAmount = {{ promo_discount }};
+    function updateSummary() {
+      const hasProt = document.getElementById('protectionCheckbox').checked;
+      document.getElementById('summaryProtectionRow').style.display = hasProt ? 'flex' : 'none';
+      const finalTotal = baseTicketTotal + (hasProt ? 19.00 : 0.00) - discountAmount;
+      const formatted = finalTotal.toFixed(2);
+      document.getElementById('totalDisplay').innerText = formatted;
+      document.getElementById('btnTotalText').innerText = formatted;
+      document.getElementById('mfaAmountDisplay').innerText = formatted;
+    }
+
+    // IT-19 MFA Modal
+    function openMFAModal() {
+      document.getElementById('mfaModal').classList.add('active');
+    }
+    function closeMFAModal() {
+      document.getElementById('mfaModal').classList.remove('active');
+    }
+    function submitFinalOrder() {
+      closeMFAModal();
+      document.getElementById('checkoutForm').submit();
+    }
+  </script>
+</body>
+</html>

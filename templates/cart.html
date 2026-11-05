@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+
+{% block title %}Amazon.com Shopping Cart{% endblock %}
+
+{% block content %}
+<div class="a-cart-page-layout">
+  <!-- Main Cart List Column -->
+  <div class="a-cart-main-col">
+    <div class="cart-title-row">
+      <h1>Shopping Cart</h1>
+      <span class="price-header-label">Price</span>
+    </div>
+    <hr class="cart-divider">
+
+    {% if items %}
+      {% for item in items %}
+        <div class="cart-line-item">
+          <div class="cart-item-img">
+            <img src="{{ item.image_url }}" alt="{{ item.title }}">
+          </div>
+          <div class="cart-item-details">
+            <h2><a href="/amazon/dp/{{ item.asin }}">{{ item.title }}</a></h2>
+            <div class="cart-in-stock">In Stock</div>
+            <div class="cart-prime-row">
+              <span class="prime-tag">prime</span>
+              <span>FREE Returns</span>
+            </div>
+
+            {% if item.color or item.size %}
+              <div class="cart-variant-info">
+                {% if item.color %}<span>Color: {{ item.color }}</span>{% endif %}
+                {% if item.size %}<span> | Size: {{ item.size }}</span>{% endif %}
+              </div>
+            {% endif %}
+
+            {% if item.has_protection_plan %}
+              <div class="cart-protection-badge">
+                <i class="fa fa-shield-alt"></i> 2-Year Extended Protection Plan included (+${{ "%.2f"|format(item.protection_plan_price) }})
+              </div>
+            {% endif %}
+
+            <div class="cart-item-actions">
+              <form action="/amazon/cart/update" method="POST" class="inline-qty-form">
+                <input type="hidden" name="item_id" value="{{ item.id }}">
+                <input type="hidden" name="action" value="set_qty">
+                <label>Qty:</label>
+                <select name="quantity" class="cart-qty-select" onchange="this.form.submit()">
+                  {% for q in range(1, 10) %}
+                    <option value="{{ q }}" {% if item.quantity == q %}selected{% endif %}>{{ q }}</option>
+                  {% endfor %}
+                </select>
+              </form>
+              <span class="action-divider">|</span>
+              <form action="/amazon/cart/update" method="POST" style="display:inline;">
+                <input type="hidden" name="item_id" value="{{ item.id }}">
+                <input type="hidden" name="action" value="delete">
+                <button type="submit" class="link-btn-delete">Delete</button>
+              </form>
+              <span class="action-divider">|</span>
+              <button class="link-btn-save">Save for later</button>
+            </div>
+          </div>
+
+          <div class="cart-item-price-col">
+            <span class="item-price">${{ "%.2f"|format(item.price * item.quantity + (item.protection_plan_price if item.has_protection_plan else 0)) }}</span>
+          </div>
+        </div>
+        <hr class="cart-divider">
+      {% endfor %}
+
+      <div class="cart-subtotal-footer">
+        Subtotal ({{ cart_count }} items): <strong>${{ "%.2f"|format(subtotal) }}</strong>
+      </div>
+    {% else %}
+      <div class="empty-cart-box">
+        <h2>Your Amazon Cart is empty.</h2>
+        <p>Your Shopping Cart lives to serve. Give it purpose — fill it with electronics, groceries, apparel, and more.</p>
+        <a href="/amazon" class="a-btn-yellow">Continue Shopping</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Right Sidebar Checkout Box -->
+  {% if items %}
+    <div class="a-cart-sidebar-col">
+      <div class="cart-sidebar-card">
+        <div class="free-shipping-progress">
+          <i class="fa fa-circle-check check-green"></i>
+          <span>Your order qualifies for <strong>FREE Delivery</strong></span>
+        </div>
+
+        <div class="sidebar-subtotal">
+          Subtotal ({{ cart_count }} items): <strong>${{ "%.2f"|format(subtotal) }}</strong>
+        </div>
+
+        <div class="gift-checkbox-row">
+          <label><input type="checkbox"> This order contains a gift</label>
+        </div>
+
+        <a href="/amazon/gp/buy/spc/handlers/display.html" class="a-btn-yellow a-btn-sidebar-checkout">
+          Proceed to checkout
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

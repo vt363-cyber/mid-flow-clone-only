@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout | Expedia Flights</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='expedia.css') }}">
+</head>
+<body class="exp-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <header class="exp-header">
+    <a href="/expedia" class="exp-logo">
+      <i class="fa-solid fa-plane-departure" style="color:var(--exp-yellow);"></i>
+      <span>Expedia</span><span class="exp-logo-dot">.com</span>
+    </a>
+    <div style="font-weight:700; color:#fff; font-size:13px;">
+      <i class="fa-solid fa-lock" style="color:var(--exp-yellow);"></i> SSL Encrypted Booking
+    </div>
+  </header>
+
+  <div class="exp-container" style="max-width:1040px; margin:28px auto;">
+    <!-- IT-9: Fare Lock & Price Guarantee Countdown Timer -->
+    <div class="exp-fare-lock-banner it-boundary it-color-rose" id="fareLockBox">
+      <div class="it-badge it-badge-rose">
+        <span class="it-badge-code">IT-9</span>
+        <span class="it-badge-name">Respond to website warnings or alerts</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <i class="fa-solid fa-clock" style="color:#b45309; font-size:18px;"></i>
+        <span><strong>Price Guaranteed:</strong> We are holding this airfare for you. Complete your reservation before time runs out.</span>
+      </div>
+      <div style="font-family:monospace; font-size:18px; font-weight:800; color:#b45309;" id="fareTimerDisplay">10:00</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1.8fr 1.2fr; gap:28px;">
+      <!-- Left Column: Checkout Forms -->
+      <div>
+        <form action="/expedia/checkout/process" method="POST" id="flightBookingForm">
+          <input type="hidden" name="flight_id" value="{{ flight.id }}">
+          <input type="hidden" name="cabin_class" value="{{ cabin }}">
+          <input type="hidden" name="has_insurance" value="{{ '1' if has_insurance else '0' }}">
+          <input type="hidden" name="seat_number" id="selectedSeatInput" value="12A (Window)">
+          <input type="hidden" name="promo_code" id="hiddenExpPromo" value="{{ promo_code or '' }}">
+
+          <!-- IT-4: Passenger Details Form with Autofill -->
+          <div class="exp-filter-card it-boundary it-color-purple" style="margin-bottom:20px;">
+            <div class="it-badge it-badge-purple">
+              <span class="it-badge-code">IT-4</span>
+              <span class="it-badge-name">Autofill forms</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <h3 style="font-size:16px; font-weight:800; color:var(--exp-text);">1. Traveler 1 (Adult) Information</h3>
+              <button type="button" onclick="autofillPassenger()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:700; color:var(--exp-blue); cursor:pointer;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Autofill Passenger
+              </button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div>
+                <label class="exp-input-label">First Name *</label>
+                <input type="text" name="first_name" id="paxFirstName" value="Alex" required class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+              </div>
+              <div>
+                <label class="exp-input-label">Last Name *</label>
+                <input type="text" name="last_name" id="paxLastName" value="Mercer" required class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div>
+                <label class="exp-input-label">Date of Birth *</label>
+                <input type="text" name="dob" id="paxDob" value="10/14/1988" placeholder="MM/DD/YYYY" required class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+              </div>
+              <div>
+                <label class="exp-input-label">Gender *</label>
+                <select name="gender" class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+                  <option value="Male" selected>Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Non-binary">Non-binary</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div>
+                <label class="exp-input-label">Mobile Phone (Flight SMS alerts) *</label>
+                <input type="text" name="phone" id="paxPhone" value="(541) 555-0199" required class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+              </div>
+              <div>
+                <label class="exp-input-label">Email Address (E-ticket delivery) *</label>
+                <input type="email" name="email" id="paxEmail" value="alex.mercer@example.com" required class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+              </div>
+            </div>
+          </div>
+
+          <!-- IT-13: Optional Travel Details: Seat Selection & Known Traveler Number -->
+          <div class="exp-filter-card it-boundary it-color-purple" style="margin-bottom:20px;">
+            <div class="it-badge it-badge-purple">
+              <span class="it-badge-code">IT-13</span>
+              <span class="it-badge-name">Fill optional details</span>
+            </div>
+
+            <h3 style="font-size:16px; font-weight:800; color:var(--exp-text); margin-bottom:12px;">2. Seat Selection &amp; Travel Preferences (Optional)</h3>
+
+            <!-- Seat Picker Trigger & Active Seat Display -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:11px; font-weight:700; color:var(--exp-subtext); text-transform:uppercase;">Assigned Seat</div>
+                <strong style="color:var(--exp-blue); font-size:15px;" id="currentSeatBadge">12A (Window Seat)</strong>
+              </div>
+              <button type="button" onclick="openSeatModal()" style="background:#fff; border:1px solid var(--exp-blue); color:var(--exp-blue); font-weight:700; border-radius:6px; padding:6px 14px; cursor:pointer;">
+                <i class="fa-solid fa-chair"></i> Change Seat
+              </button>
+            </div>
+
+            <div class="exp-form-group">
+              <label class="exp-input-label">TSA PreCheck / Known Traveler Number (KTN)</label>
+              <input type="text" name="tsa_precheck" value="984029148" placeholder="e.g. 984029148" class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+            </div>
+          </div>
+
+          <!-- IT-11: Flight Updates & Promotional Communications -->
+          <div class="exp-filter-card it-boundary it-color-amber" style="margin-bottom:20px;">
+            <div class="it-badge it-badge-amber">
+              <span class="it-badge-code">IT-11</span>
+              <span class="it-badge-name">Choose transactional vs.promotional communications</span>
+            </div>
+            <h3 style="font-size:16px; font-weight:800; color:var(--exp-text); margin-bottom:12px;">3. Travel Notifications</h3>
+            <label class="exp-checkbox-label" style="margin-bottom:10px;">
+              <input type="checkbox" name="sms_alerts" value="1" checked>
+              <span>Send me real-time flight status, gate changes, and baggage carousel updates via SMS.</span>
+            </label>
+            <label class="exp-checkbox-label">
+              <input type="checkbox" name="marketing_opt_in" value="1">
+              <span>Send me Expedia member secret prices and hotel discount packages for New York.</span>
+            </label>
+          </div>
+
+          <!-- IT-17 & IT-10: Payment Details & Save Card -->
+          <div class="exp-filter-card" style="margin-bottom:24px;">
+            <h3 style="font-size:16px; font-weight:800; color:var(--exp-text); margin-bottom:14px;">4. Payment Information</h3>
+
+            <div style="margin-bottom:12px;">
+              <label class="exp-input-label">Name on Card</label>
+              <input type="text" name="cardholder" value="Alex Mercer" class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <label class="exp-input-label">Card Number</label>
+              <input type="text" name="card_num" value="4242 •••• •••• 4242" class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+              <div>
+                <label class="exp-input-label">Expiration Date</label>
+                <input type="text" name="exp" value="12/28" class="exp-input-val" style="border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+              </div>
+
+              <!-- IT-17: CVV Security Code Mask / Reveal -->
+              <div class="it-boundary it-color-cyan" style="padding:4px 6px;">
+                <div class="it-badge it-badge-cyan">
+                  <span class="it-badge-code">IT-17</span>
+                  <span class="it-badge-name">Reveal sensitive obscured information</span>
+                </div>
+                <label class="exp-input-label">Security Code (CVV)</label>
+                <div style="display:flex; gap:6px;">
+                  <input type="password" id="cvvInput" name="cvv" value="482" maxlength="4" class="exp-input-val" style="width:90px; border:1px solid var(--exp-border); border-radius:6px; padding:8px;">
+                  <button type="button" onclick="toggleExpCVV()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:6px 10px; font-size:11px; font-weight:700; cursor:pointer;">
+                    <i class="fa-solid fa-eye" id="cvvEye"></i> Show
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- IT-10: Save card choice -->
+            <div class="it-boundary it-color-amber" style="padding:8px;">
+              <div class="it-badge it-badge-amber">
+                <span class="it-badge-code">IT-10</span>
+                <span class="it-badge-name">Decide whether to retain save option details</span>
+              </div>
+              <label class="exp-checkbox-label">
+                <input type="checkbox" name="save_payment" value="1" checked>
+                <span>Save this card securely in my Expedia account for 1-click travel reservations.</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Complete Booking Button (Trigger, no boundary) -->
+          <button type="button" class="btn-exp-select" id="btnCompleteBooking" onclick="open2FAModal()" style="width:100%; padding:16px; font-size:16px;">
+            <i class="fa-solid fa-lock"></i> Complete Booking ($<span id="bookingBtnTotal">{{ "%.2f"|format(total) }}</span>)
+          </button>
+        </form>
+      </div>
+
+      <!-- Right Column: Trip Summary Box -->
+      <div>
+        <div style="background:#fff; border:1px solid var(--exp-border); border-radius:12px; padding:20px; position:sticky; top:80px;">
+          <h3 style="font-size:16px; font-weight:800; color:var(--exp-text); margin-bottom:12px;">Trip Summary</h3>
+          <div style="font-weight:700; color:var(--exp-blue);">{{ flight.airline }} &bull; Flight {{ flight.flight_number }}</div>
+          <div style="font-size:13px; color:var(--exp-subtext); margin-bottom:16px;">{{ flight.origin_city }} ({{ flight.origin_code }}) &rarr; {{ flight.dest_city }} ({{ flight.dest_code }})</div>
+
+          <div style="display:flex; justify-content:space-between; font-size:13px; padding:6px 0; color:var(--exp-subtext);">
+            <span>Base Fare ({{ cabin }})</span>
+            <span>${{ "%.2f"|format(base_fare) }}</span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; font-size:13px; padding:6px 0; color:var(--exp-subtext);">
+            <span>Taxes &amp; Carrier Fees</span>
+            <span>${{ "%.2f"|format(taxes_fees) }}</span>
+          </div>
+
+          {% if has_insurance %}
+            <div style="display:flex; justify-content:space-between; font-size:13px; padding:6px 0; color:var(--exp-subtext);">
+              <span>Flight Protection Insurance</span>
+              <span>$34.00</span>
+            </div>
+          {% endif %}
+
+          <!-- IT-12: Promo Code / Coupon Section -->
+          <div class="it-boundary it-color-amber" style="margin:14px 0; padding:10px; background:#fffbeb; border:1px solid #fef3c7; border-radius:8px;">
+            <div class="it-badge it-badge-amber">
+              <span class="it-badge-code">IT-12</span>
+              <span class="it-badge-name">Fill additional options</span>
+            </div>
+            <div style="font-size:12px; font-weight:700; color:#b45309; margin-bottom:4px;">Have a Coupon or Travel Credit?</div>
+            <div style="display:flex; gap:6px;">
+              <input type="text" id="promoCodeInput" placeholder="Try EXPEDIA50" class="exp-input-val" style="border:1px solid #d1d5db; border-radius:4px; padding:6px; font-size:12px; text-transform:uppercase;">
+              <button type="button" onclick="applyExpediaPromo()" style="background:var(--exp-blue); color:#fff; border:none; border-radius:4px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">Apply</button>
+            </div>
+            <div id="promoNotice" style="font-size:11px; margin-top:4px; font-weight:600; display:none;"></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; font-size:13px; padding:6px 0; color:var(--exp-green); font-weight:700; display:{% if promo_discount > 0 %}flex{% else %}none{% endif %};" id="promoLine">
+            <span>Coupon Discount</span>
+            <span>-$<span id="promoAmountDisplay">{{ "%.2f"|format(promo_discount) }}</span></span>
+          </div>
+
+          <div style="border-top:2px solid #e2e8f0; margin-top:12px; padding-top:12px; display:flex; justify-content:space-between; font-size:18px; font-weight:900; color:var(--exp-text);">
+            <span>Total:</span>
+            <span>$<span id="totalDisplay">{{ "%.2f"|format(total) }}</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IT-13: Interactive Airplane Seat Map Modal -->
+  <div class="exp-modal-backdrop" id="seatModal">
+    <div class="exp-modal-box it-boundary it-color-purple">
+      <div class="it-badge it-badge-purple">
+        <span class="it-badge-code">IT-13</span>
+        <span class="it-badge-name">Fill optional details</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:16px;">
+        <h3 style="font-size:17px; font-weight:800; color:var(--exp-blue);"><i class="fa-solid fa-chair"></i> Select Your Seat — Boeing 767</h3>
+        <button type="button" onclick="closeSeatModal()" style="background:none; border:none; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:var(--exp-subtext); margin-bottom:14px;">
+        Click an available seat to assign it to your reservation:
+      </p>
+
+      <div class="exp-seat-map-grid">
+        <button type="button" class="exp-seat-btn selected" onclick="selectSeat('12A (Window)')">12A</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('12B (Middle)')">12B</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('12C (Aisle)')">12C</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('12D (Aisle)')">12D</button>
+        <button type="button" class="exp-seat-btn occupied" disabled>12E</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('12F (Window)')">12F</button>
+
+        <button type="button" class="exp-seat-btn occupied" disabled>14A</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('14B (Middle)')">14B</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('14C (Aisle)')">14C</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('14D (Aisle)')">14D</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('14E (Middle)')">14E</button>
+        <button type="button" class="exp-seat-btn" onclick="selectSeat('14F (Window)')">14F</button>
+      </div>
+
+      <div style="display:flex; gap:16px; justify-content:center; font-size:12px; color:var(--exp-subtext); margin-bottom:20px;">
+        <span><strong style="color:var(--exp-blue);">■</strong> Selected</span>
+        <span><strong style="color:#64748b;">□</strong> Available</span>
+        <span><strong style="color:#cbd5e1;">■</strong> Occupied</span>
+      </div>
+
+      <button type="button" class="btn-exp-select" onclick="confirmSeatSelection()" style="width:100%;">
+        Confirm Seat Selection
+      </button>
+    </div>
+  </div>
+
+  <!-- IT-19: 2-Factor / MFA Challenge Modal -->
+  <div class="exp-modal-backdrop" id="twoFaModal">
+    <div class="exp-modal-box it-boundary it-color-indigo" style="max-width:440px;">
+      <div class="it-badge it-badge-indigo">
+        <span class="it-badge-code">IT-19</span>
+        <span class="it-badge-name">Choose MFA strategy</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:14px;">
+        <h3 style="font-size:16px; font-weight:800; color:var(--exp-blue);"><i class="fa-solid fa-shield-halved"></i> Verify Cardholder Identity</h3>
+        <button type="button" onclick="close2FAModal()" style="background:none; border:none; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:var(--exp-subtext); margin-bottom:14px;">
+        Your bank requires two-factor verification to approve this airline charge:
+      </p>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer;">
+          <input type="radio" name="auth_method" value="sms" checked>
+          <div>
+            <strong style="color:var(--exp-text);">SMS Verification Code</strong>
+            <div style="font-size:11px; color:#64748b;">Send 6-digit passcode to (541) •••-0199</div>
+          </div>
+        </label>
+
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="radio" name="auth_method" value="passkey">
+          <div>
+            <strong style="color:var(--exp-text);">Expedia Security Passkey</strong>
+            <div style="font-size:11px; color:#64748b;">Authenticate with fingerprint or facial scan</div>
+          </div>
+        </label>
+      </div>
+
+      <button type="button" class="btn-exp-select" onclick="submitFinalBooking()" style="width:100%; padding:12px;">
+        Authorize &amp; Issue E-Ticket
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    // IT-9 Fare Lock countdown
+    let seconds = 600;
+    setInterval(() => {
+      if (seconds > 0) {
+        seconds--;
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        document.getElementById('fareTimerDisplay').innerText = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+    }, 1000);
+
+    // IT-4 Autofill
+    function autofillPassenger() {
+      document.getElementById('paxFirstName').value = 'Alex';
+      document.getElementById('paxLastName').value = 'Mercer';
+      document.getElementById('paxDob').value = '10/14/1988';
+      document.getElementById('paxPhone').value = '(541) 555-0199';
+      document.getElementById('paxEmail').value = 'alex.mercer@example.com';
+    }
+
+    // IT-17 CVV Toggle
+    function toggleExpCVV() {
+      const el = document.getElementById('cvvInput');
+      const eye = document.getElementById('cvvEye');
+      if (el.type === 'password') {
+        el.type = 'text';
+        eye.className = 'fa-solid fa-eye-slash';
+      } else {
+        el.type = 'password';
+        eye.className = 'fa-solid fa-eye';
+      }
+    }
+
+    // IT-13 Seat Map
+    let activeSeat = '12A (Window)';
+    function openSeatModal() { document.getElementById('seatModal').classList.add('active'); }
+    function closeSeatModal() { document.getElementById('seatModal').classList.remove('active'); }
+    function selectSeat(seat) {
+      activeSeat = seat;
+      document.querySelectorAll('.exp-seat-btn').forEach(b => b.classList.remove('selected'));
+      event.target.classList.add('selected');
+    }
+    function confirmSeatSelection() {
+      document.getElementById('selectedSeatInput').value = activeSeat;
+      document.getElementById('currentSeatBadge').innerText = activeSeat;
+      closeSeatModal();
+    }
+
+    // IT-12 Promo Code
+    let promoDiscount = {{ promo_discount }};
+    const baseTotal = {{ total + promo_discount }};
+    function applyExpediaPromo() {
+      const c = document.getElementById('promoCodeInput').value.trim().toUpperCase();
+      const notice = document.getElementById('promoNotice');
+      if (c === 'EXPEDIA50') {
+        promoDiscount = 50.00;
+        document.getElementById('hiddenExpPromo').value = c;
+        notice.style.display = 'block';
+        notice.style.color = '#15803d';
+        notice.innerText = '✓ Code EXPEDIA50 applied! ($50 discount)';
+        document.getElementById('promoLine').style.display = 'flex';
+        document.getElementById('promoAmountDisplay').innerText = '50.00';
+        const finalT = (baseTotal - promoDiscount).toFixed(2);
+        document.getElementById('totalDisplay').innerText = finalT;
+        document.getElementById('bookingBtnTotal').innerText = finalT;
+      } else {
+        notice.style.display = 'block';
+        notice.style.color = '#b91c1c';
+        notice.innerText = '✕ Invalid coupon code.';
+      }
+    }
+
+    // IT-19 2FA Modal
+    function open2FAModal() { document.getElementById('twoFaModal').classList.add('active'); }
+    function close2FAModal() { document.getElementById('twoFaModal').classList.remove('active'); }
+    function submitFinalBooking() {
+      close2FAModal();
+      document.getElementById('flightBookingForm').submit();
+    }
+  </script>
+</body>
+</html>

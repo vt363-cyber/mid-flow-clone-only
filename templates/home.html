@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="a-hero-banner">
+  <div class="a-hero-overlay">
+    <div class="a-hero-text">
+      <h2>Spring Deals & Echo Devices</h2>
+      <p>Save up to 40% on top audio, devices, and spring wardrobe essentials.</p>
+    </div>
+  </div>
+</div>
+
+<div class="a-home-grid">
+  <!-- 4-Box Feature Cards -->
+  <div class="a-card-box">
+    <h3>Top Picks in Electronics</h3>
+    <div class="a-box-thumb">
+      <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=60" alt="Audio">
+    </div>
+    <a href="/amazon/s?i=Electronics" class="a-box-link">See more deals</a>
+  </div>
+
+  <div class="a-card-box">
+    <h3>Amazon Devices & Alexa</h3>
+    <div class="a-box-thumb">
+      <img src="https://images.unsplash.com/photo-1543512214-318c7553f230?w=800&auto=format&fit=crop&q=60" alt="Echo">
+    </div>
+    <a href="/amazon/s?i=Amazon+Devices" class="a-box-link">Explore Echo & Kindle</a>
+  </div>
+
+  <div class="a-card-box">
+    <h3>Fashion Essentials</h3>
+    <div class="a-box-thumb">
+      <img src="https://images.unsplash.com/photo-1544923246-77307dd654cb?w=800&auto=format&fit=crop&q=60" alt="Fashion">
+    </div>
+    <a href="/amazon/s?i=Fashion" class="a-box-link">Shop winter wear</a>
+  </div>
+
+  <div class="a-card-box">
+    <h3>Fast Prime Delivery</h3>
+    <div class="a-box-thumb">
+      <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop&q=60" alt="Delivery">
+    </div>
+    <a href="/amazon/s?prime=1" class="a-box-link">Check Prime eligible</a>
+  </div>
+</div>
+
+<!-- Featured Products Carousel / Row -->
+<div class="a-deals-section">
+  <div class="a-section-title">
+    <h2>Today's Deals | Best Sellers in Electronics & Devices</h2>
+    <a href="/amazon/s?k=deals">See all deals</a>
+  </div>
+
+  <div class="a-products-carousel">
+    {% for p in products %}
+      <div class="a-deal-card">
+        {% if p.best_seller_badge %}
+          <div class="a-badge-bestseller">{{ p.best_seller_badge }}</div>
+        {% endif %}
+        <a href="/amazon/dp/{{ p.asin }}" class="deal-img-wrap">
+          <img src="{{ p.image_url }}" alt="{{ p.title }}">
+        </a>
+        <div class="deal-meta">
+          <div class="deal-price-line">
+            <span class="a-deal-badge">Limited time deal</span>
+            <span class="a-price">${{ "%.2f"|format(p.price) }}</span>
+            <span class="a-list-price">List: ${{ "%.2f"|format(p.list_price) }}</span>
+          </div>
+          <div class="deal-prime-row">
+            <span class="prime-tag">prime</span>
+            <span class="prime-delivery">FREE Two-Day Delivery</span>
+          </div>
+          <h4 class="deal-title"><a href="/amazon/dp/{{ p.asin }}">{{ p.title[:85] }}...</a></h4>
+          <div class="deal-rating">
+            <span class="stars">★★★★★</span>
+            <span class="count">{{ "{:,}".format(p.rating_count) }}</span>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

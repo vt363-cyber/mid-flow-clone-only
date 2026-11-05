@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trattoria Bella | DoorDash Delivery</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='doordash.css') }}">
+</head>
+<body class="dd-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <header class="dd-header">
+    <div style="display:flex; align-items:center; gap:24px;">
+      <a href="/doordash" class="dd-logo">
+        <i class="fa-solid fa-burger" style="font-size:24px;"></i>
+        <span>DOORDASH</span>
+      </a>
+      
+      <!-- Geolocation Trigger (IT-5 Dialog) -->
+      <button type="button" onclick="openLocationModal()" style="background:#f1f5f9; border:1px solid #e2e8f0; border-radius:20px; padding:6px 14px; font-size:13px; font-weight:700; color:#1e293b; cursor:pointer; display:flex; align-items:center; gap:6px;">
+        <i class="fa-solid fa-location-dot" style="color:var(--dd-red);"></i>
+        <span id="currentAddressLabel">742 Evergreen Terrace, Springfield, OR</span>
+      </button>
+    </div>
+
+    <div>
+      <a href="/doordash/checkout" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:20px; padding:8px 16px; font-size:13px; font-weight:700; color:#1e293b; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-cart-shopping" style="color:var(--dd-red);"></i> View Cart ($<span id="headerCartTotal">21.99</span>)
+      </a>
+    </div>
+  </header>
+
+  <div class="dd-container">
+    <!-- Restaurant Header Card -->
+    <div style="background:#fff; border:1px solid var(--dd-border); border-radius:12px; overflow:hidden; margin-bottom:28px;">
+      <div style="height:180px; background-image:url('https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&auto=format&fit=crop&q=80'); background-size:cover; background-position:center;"></div>
+      <div style="padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h1 style="font-size:26px; font-weight:900; color:var(--dd-text);">Trattoria Bella &bull; Artisan Wood-Fired Pizza</h1>
+            <p style="color:var(--dd-subtext); font-size:14px; margin-top:4px;">Italian &bull; Pizza &bull; Fresh Pasta &bull; Salads</p>
+          </div>
+          <span style="background:#e6f4ea; color:#137333; font-weight:800; font-size:13px; padding:4px 10px; border-radius:6px;">
+            <i class="fa-solid fa-star"></i> 4.8 (1,240+)
+          </span>
+        </div>
+
+        <div style="display:flex; gap:20px; margin-top:16px; font-size:13px; color:var(--dd-subtext); border-top:1px solid #f1f5f9; padding-top:14px;">
+          <span><i class="fa-regular fa-clock" style="color:var(--dd-red);"></i> 25–35 min</span>
+          <span><i class="fa-solid fa-bicycle" style="color:var(--dd-red);"></i> $0.99 Delivery Fee</span>
+          <span><i class="fa-solid fa-tag" style="color:var(--dd-red);"></i> In-store pricing</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Items Grid & Cart Sidebar -->
+    <div style="display:grid; grid-template-columns:1.8fr 1fr; gap:28px;">
+      <div>
+        <h2 style="font-size:20px; font-weight:800; color:var(--dd-text); margin-bottom:16px;">Popular Dishes</h2>
+
+        <!-- Item 1: Truffle Mushroom Pizza -->
+        <div style="background:#fff; border:1px solid var(--dd-border); border-radius:10px; padding:18px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="font-size:16px; font-weight:800; color:var(--dd-text);">Truffle Wild Mushroom Pizza</h3>
+            <p style="font-size:13px; color:var(--dd-subtext); margin:4px 0 8px;">Roasted cremini and shiitake mushrooms, fresh mozzarella, truffle glaze, and thyme.</p>
+            <strong style="color:var(--dd-text); font-size:15px;">$21.99</strong>
+          </div>
+          <button type="button" onclick="addToOrder('Truffle Wild Mushroom Pizza', 21.99)" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:20px; padding:8px 16px; font-size:13px; font-weight:700; color:var(--dd-red); cursor:pointer;">
+            + Add
+          </button>
+        </div>
+
+        <!-- Item 2: Margherita Pizza -->
+        <div style="background:#fff; border:1px solid var(--dd-border); border-radius:10px; padding:18px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="font-size:16px; font-weight:800; color:var(--dd-text);">Classic San Marzano Margherita</h3>
+            <p style="font-size:13px; color:var(--dd-subtext); margin:4px 0 8px;">San Marzano tomato sauce, fresh buffalo mozzarella, aromatic sweet basil, extra virgin olive oil.</p>
+            <strong style="color:var(--dd-text); font-size:15px;">$18.50</strong>
+          </div>
+          <button type="button" onclick="addToOrder('Classic Margherita Pizza', 18.50)" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:20px; padding:8px 16px; font-size:13px; font-weight:700; color:var(--dd-red); cursor:pointer;">
+            + Add
+          </button>
+        </div>
+
+        <!-- Item 3: Caesar Salad -->
+        <div style="background:#fff; border:1px solid var(--dd-border); border-radius:10px; padding:18px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="font-size:16px; font-weight:800; color:var(--dd-text);">Classic Caesar Salad</h3>
+            <p style="font-size:13px; color:var(--dd-subtext); margin:4px 0 8px;">Crisp romaine hearts, shaved parmigiano-reggiano, garlic herb croutons, Caesar dressing.</p>
+            <strong style="color:var(--dd-text); font-size:15px;">$11.50</strong>
+          </div>
+          <button type="button" onclick="addToOrder('Classic Caesar Salad', 11.50)" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:20px; padding:8px 16px; font-size:13px; font-weight:700; color:var(--dd-red); cursor:pointer;">
+            + Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Cart Drawer -->
+      <div>
+        <div style="background:#fff; border:1px solid var(--dd-border); border-radius:10px; padding:20px; position:sticky; top:80px;">
+          <h3 style="font-size:16px; font-weight:800; color:var(--dd-text); margin-bottom:14px;">Your Order</h3>
+          
+          <div id="cartItemsList">
+            <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:10px;">
+              <span>1 &times; Truffle Wild Mushroom Pizza</span>
+              <strong>$21.99</strong>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--dd-border); padding-top:12px; margin-top:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--dd-subtext); margin-bottom:6px;">
+              <span>Subtotal</span>
+              <span id="cartSubtotalText">$21.99</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--dd-subtext); margin-bottom:6px;">
+              <span>Estimated Delivery Fee</span>
+              <span>$0.99</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:900; color:var(--dd-text); border-top:2px solid #e2e8f0; padding-top:10px; margin-top:10px;">
+              <span>Estimated Total</span>
+              <span id="cartTotalText">$22.98</span>
+            </div>
+          </div>
+
+          <a href="/doordash/checkout" style="display:block; text-align:center; background:var(--dd-red); color:#fff; font-weight:800; font-size:15px; border-radius:24px; padding:12px; margin-top:18px; text-decoration:none;">
+            Checkout &bull; <span id="btnCheckoutAmount">$22.98</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IT-5: Location Permission Modal -->
+  <div class="dd-modal-backdrop" id="locationModal">
+    <div class="dd-modal-box it-boundary it-color-teal" style="max-width:460px;">
+      <div class="it-badge it-badge-teal">
+        <span class="it-badge-code">IT-5</span>
+        <span class="it-badge-name">Resolve request for browser permissions</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+        <h3 style="font-size:16px; font-weight:800; color:var(--dd-text);">
+          <i class="fa-solid fa-location-crosshairs" style="color:var(--dd-red);"></i> Share Current Location
+        </h3>
+        <button type="button" onclick="closeLocationModal()" style="background:none; border:none; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:var(--dd-subtext); margin-bottom:16px; line-height:1.5;">
+        Allow DoorDash to access your browser location to accurately verify delivery availability and calculate live courier drop-off estimates.
+      </p>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" onclick="closeLocationModal()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;">
+          Keep Springfield
+        </button>
+        <button type="button" onclick="grantLocation()" style="background:var(--dd-red); color:#fff; border:none; border-radius:6px; padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer;">
+          Share Location
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IT-6: Cookie Banner -->
+  <div class="dd-cookie-banner it-boundary it-color-teal" id="cookieBanner" style="display:none;">
+    <div class="it-badge it-badge-teal">
+      <span class="it-badge-code">IT-6</span>
+      <span class="it-badge-name">Resolve cookie and tracking-consent choices</span>
+    </div>
+    <div style="font-size:13px; color:#fff;">
+      <strong>DoorDash Cookie Preferences:</strong> We use cookies to personalize restaurant suggestions, remember delivery addresses, and ensure secure payments.
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button type="button" onclick="dismissCookieBanner(false)" style="background:transparent; border:1px solid #cbd5e1; color:#fff; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+        Essential only
+      </button>
+      <button type="button" onclick="dismissCookieBanner(true)" style="background:var(--dd-red); color:#fff; border:none; padding:6px 16px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
+        Accept all
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    // IT-6 Cookie
+    if (!localStorage.getItem('dd_cookie_consent')) {
+      document.getElementById('cookieBanner').style.display = 'flex';
+    }
+    function dismissCookieBanner(all) {
+      localStorage.setItem('dd_cookie_consent', all ? 'all' : 'essential');
+      document.getElementById('cookieBanner').style.display = 'none';
+    }
+
+    // IT-5 Geolocation
+    function openLocationModal() { document.getElementById('locationModal').classList.add('active'); }
+    function closeLocationModal() { document.getElementById('locationModal').classList.remove('active'); }
+    function grantLocation() {
+      closeLocationModal();
+      document.getElementById('currentAddressLabel').innerText = '742 Evergreen Terrace (GPS Verified)';
+    }
+
+    // Cart actions
+    let total = 21.99;
+    function addToOrder(name, price) {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex; justify-content:space-between; font-size:14px; margin-bottom:10px;';
+      div.innerHTML = `<span>1 &times; ${name}</span><strong>$${price.toFixed(2)}</strong>`;
+      document.getElementById('cartItemsList').appendChild(div);
+      total += price;
+      document.getElementById('cartSubtotalText').innerText = '$' + total.toFixed(2);
+      const grandTotal = (total + 0.99).toFixed(2);
+      document.getElementById('cartTotalText').innerText = '$' + grandTotal;
+      document.getElementById('btnCheckoutAmount').innerText = '$' + grandTotal;
+      document.getElementById('headerCartTotal').innerText = grandTotal;
+    }
+  </script>
+</body>
+</html>

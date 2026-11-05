@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Meet | Q4 Autonomous Agents Sync</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='meet.css') }}">
+</head>
+<body class="meet-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <header style="padding:16px 28px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--meet-border);">
+    <div style="display:flex; align-items:center; gap:12px; font-size:18px; font-weight:700; color:#fff;">
+      <i class="fa-solid fa-video" style="color:var(--meet-blue);"></i>
+      <span>Google Meet</span>
+    </div>
+
+    <!-- IT-1: Account / Identity Selector -->
+    <div class="it-boundary it-color-blue" style="padding:4px 8px; border-radius:6px;">
+      <div class="it-badge it-badge-blue">
+        <span class="it-badge-code">IT-1</span>
+        <span class="it-badge-name">Select an account or identity</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+        <span style="color:var(--meet-subtext);">Signed in as:</span>
+        <strong style="color:#fff;" id="activeAccountName">Alex Mercer</strong>
+        <span style="color:var(--meet-subtext); font-size:12px;">(alex.mercer@company.com)</span>
+        <button type="button" onclick="switchIdentity()" style="background:none; border:none; color:var(--meet-blue); cursor:pointer; font-weight:700; font-size:12px; margin-left:4px;">
+          Switch
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="meet-lobby-container">
+    <!-- Left Column: Video Preview -->
+    <div>
+      <div class="meet-video-preview" id="videoPreview">
+        <div style="text-align:center; color:#9aa0a6;">
+          <div style="width:80px; height:80px; border-radius:50%; background:#3c4043; color:#fff; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; margin:0 auto 12px;">
+            AM
+          </div>
+          <div style="font-size:14px; font-weight:600;">Camera is off (Permission required)</div>
+        </div>
+
+        <div class="meet-cam-controls">
+          <button type="button" class="btn-meet-icon muted" id="btnMic" onclick="toggleMic()" title="Toggle microphone">
+            <i class="fa-solid fa-microphone-slash"></i>
+          </button>
+          <button type="button" class="btn-meet-icon muted" id="btnCam" onclick="requestDevicePermissions()" title="Toggle camera">
+            <i class="fa-solid fa-video-slash"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; text-align:center;">
+        <!-- Trigger for Device Permission (IT-5 Dialog) -->
+        <button type="button" onclick="requestDevicePermissions()" style="background:none; border:1px solid #5f6368; border-radius:18px; padding:6px 14px; color:var(--meet-blue); font-size:12px; font-weight:600; cursor:pointer;">
+          <i class="fa-solid fa-gear"></i> Check microphone &amp; camera permissions (IT-5)
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Column: Ready to Join -->
+    <div>
+      <h1 style="font-size:26px; font-weight:700; color:#fff; margin-bottom:8px;">Ready to join?</h1>
+      <p style="color:var(--meet-subtext); font-size:14px; margin-bottom:20px;">
+        Q4 Autonomous Agents Sprint &amp; Architecture Sync
+      </p>
+
+      <div style="background:var(--meet-panel); border:1px solid var(--meet-border); border-radius:8px; padding:14px; margin-bottom:20px;">
+        <div style="font-size:13px; color:#e8eaed; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-users" style="color:var(--meet-blue);"></i>
+          <span><strong>Sarah Jenkins</strong> and <strong>2 others</strong> are already in this call</span>
+        </div>
+      </div>
+
+      <form action="/meet/room" method="GET" id="meetJoinForm">
+        <!-- IT-19: Meeting Passcode / Security PIN -->
+        <div class="it-boundary it-color-rose" style="margin-bottom:20px; padding:12px; background:var(--meet-panel); border:1px solid var(--meet-border); border-radius:8px;">
+          <div class="it-badge it-badge-rose">
+            <span class="it-badge-code">IT-19</span>
+            <span class="it-badge-name">Choose MFA strategy</span>
+          </div>
+          <label style="display:block; font-size:12px; font-weight:700; color:var(--meet-subtext); text-transform:uppercase; margin-bottom:6px;">
+            Meeting Security Passcode *
+          </label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" name="passcode" id="meetPasscode" value="492-108" required style="flex:1; background:#202124; border:1px solid #5f6368; color:#fff; padding:8px 12px; border-radius:6px; font-family:monospace; font-size:14px;">
+            <button type="button" onclick="document.getElementById('meetPasscode').value='492-108'" style="background:#3c4043; border:none; border-radius:6px; color:#fff; padding:8px 12px; font-size:12px; cursor:pointer;">
+              Auto-fill
+            </button>
+          </div>
+        </div>
+
+        <input type="hidden" name="recording_consent" id="hiddenConsent" value="0">
+
+        <!-- Join Trigger (Opens IT-18 Recording Consent Dialog) -->
+        <button type="button" class="btn-meet-join" onclick="openRecordingConsentModal()" style="width:100%; padding:14px;">
+          Join now &rarr;
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- IT-5: Browser Camera & Microphone Device Permission Modal -->
+  <div class="meet-modal-backdrop" id="deviceModal">
+    <div class="meet-modal-box it-boundary it-color-teal">
+      <div class="it-badge it-badge-teal">
+        <span class="it-badge-code">IT-5</span>
+        <span class="it-badge-name">Resolve request for browser permissions</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
+        <h3 style="font-size:16px; font-weight:800; color:#172b4d;">
+          <i class="fa-solid fa-camera" style="color:#0f766e;"></i> Device Permissions Request
+        </h3>
+        <button type="button" onclick="closeDeviceModal()" style="background:none; border:none; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:#475569; margin-bottom:16px; line-height:1.5;">
+        <strong>meet.google.com</strong> wants to access your built-in microphone and web camera to transmit audio and video during the conference call.
+      </p>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" onclick="grantDevice(false)" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;">
+          Block
+        </button>
+        <button type="button" onclick="grantDevice(true)" style="background:#0f766e; color:#fff; border:none; border-radius:6px; padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer;">
+          Allow Camera &amp; Mic
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IT-18: Virtual Communication (Recording & AI Transcription Consent) Modal -->
+  <div class="meet-modal-backdrop" id="recordingConsentModal">
+    <div class="meet-modal-box it-boundary it-color-purple">
+      <div class="it-badge it-badge-purple">
+        <span class="it-badge-code">IT-18</span>
+        <span class="it-badge-name">Handle virtual communication</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
+        <h3 style="font-size:16px; font-weight:800; color:#172b4d;">
+          <i class="fa-solid fa-record-vinyl" style="color:#dc2626;"></i> Recording &amp; AI Transcription Notice
+        </h3>
+        <button type="button" onclick="closeRecordingConsentModal()" style="background:none; border:none; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px; margin-bottom:16px;">
+        <strong style="color:#991b1b; font-size:13px; display:block; margin-bottom:4px;">
+          <i class="fa-solid fa-circle-dot" style="color:#dc2626;"></i> Live Recording Active
+        </strong>
+        <p style="color:#7f1d1d; font-size:12px; line-height:1.4;">
+          The organizer (Sarah Jenkins) has enabled cloud video recording and automated AI meeting minutes via Gemini for Google Workspace.
+        </p>
+      </div>
+
+      <p style="font-size:13px; color:#475569; margin-bottom:20px; line-height:1.5;">
+        By continuing, you agree that your spoken audio, camera feed, and chat contributions will be recorded and transcribed for internal archival.
+      </p>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" onclick="confirmJoinWithMute()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer;">
+          Join with Audio/Video Muted
+        </button>
+        <button type="button" onclick="confirmJoinWithConsent()" style="background:#1d4ed8; color:#fff; border:none; border-radius:6px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer;">
+          Consent &amp; Join Meeting
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    // IT-1 Identity Switch
+    function switchIdentity() {
+      const alt = prompt("Switch meeting identity:", "alex.mercer@company.com");
+      if (alt) {
+        document.getElementById('activeAccountName').innerText = alt.split('@')[0];
+      }
+    }
+
+    // IT-5 Device Permissions
+    function requestDevicePermissions() {
+      document.getElementById('deviceModal').classList.add('active');
+    }
+    function closeDeviceModal() {
+      document.getElementById('deviceModal').classList.remove('active');
+    }
+    function grantDevice(allowed) {
+      closeDeviceModal();
+      if (allowed) {
+        document.getElementById('btnMic').classList.remove('muted');
+        document.getElementById('btnCam').classList.remove('muted');
+        document.getElementById('videoPreview').innerHTML = `
+          <div style="position:relative; width:100%; height:100%; background:#1e293b; display:flex; align-items:center; justify-content:center;">
+            <i class="fa-solid fa-user" style="font-size:72px; color:#38bdf8;"></i>
+            <span style="position:absolute; bottom:12px; left:14px; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:4px; font-size:12px; color:#fff;">Live Camera Feed (Granted)</span>
+          </div>
+        `;
+      } else {
+        alert("Camera and microphone blocked. You may join the meeting as listener only.");
+      }
+    }
+
+    // IT-18 Recording Consent
+    function openRecordingConsentModal() {
+      document.getElementById('recordingConsentModal').classList.add('active');
+    }
+    function closeRecordingConsentModal() {
+      document.getElementById('recordingConsentModal').classList.remove('active');
+    }
+    function confirmJoinWithConsent() {
+      document.getElementById('hiddenConsent').value = '1';
+      closeRecordingConsentModal();
+      document.getElementById('meetJoinForm').submit();
+    }
+    function confirmJoinWithMute() {
+      document.getElementById('hiddenConsent').value = '0';
+      closeRecordingConsentModal();
+      document.getElementById('meetJoinForm').submit();
+    }
+  </script>
+</body>
+</html>

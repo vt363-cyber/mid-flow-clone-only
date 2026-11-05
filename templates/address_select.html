@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon.com Checkout — Select Delivery Address</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='amazon.css') }}">
+</head>
+<body class="spc-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Benchmark Task Hub">
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Amazon Minimal Checkout Header -->
+  <header class="spc-header">
+    <div class="spc-header-container">
+      <a href="/amazon" class="spc-logo">
+        <span class="a-logo-text">amazon</span><span class="a-logo-dot">.com</span>
+      </a>
+      <h1 class="spc-title">Checkout (<span class="spc-item-count">{{ cart_count }} items</span>)</h1>
+      <div class="spc-secure-badge">
+        <i class="fa fa-lock"></i>
+      </div>
+    </div>
+  </header>
+
+  <main class="spc-main-container">
+    <div class="spc-layout">
+      <!-- Left Column: Address Selection Flow -->
+      <div class="spc-steps-col">
+        <div class="spc-section-card">
+          <div class="section-num-header">
+            <div class="section-title-wrap">
+              <span class="step-num">1</span>
+              <h2>Select a delivery address</h2>
+            </div>
+            <a href="/amazon/gp/buy/spc/handlers/display.html" class="link-change-step">&larr; Back to Order Review</a>
+          </div>
+
+          <p style="font-size: 13px; color: #565959; margin-bottom: 16px;">
+            Choose where you would like your order delivered. You can select a home/work address, add custom delivery instructions, or pick up from an Amazon Hub Locker.
+          </p>
+
+          <!-- Quick Action Toolbar: Delivery Instructions & Hub Locker -->
+          <div class="address-action-toolbar">
+            <button type="button" class="btn-pill-action" onclick="openInstructionsModal({{ selected_address.id if selected_address else 1 }})">
+              <i class="fa-solid fa-clipboard-list"></i> Add delivery instructions
+            </button>
+            <button type="button" class="btn-pill-action" onclick="openLockerModal()">
+              <i class="fa-solid fa-box-archive"></i> Deliver to an Amazon Hub Locker
+            </button>
+          </div>
+
+          <!-- Quick Address Select Dropdown -->
+          <div class="spc-address-dropdown-bar" style="margin-top: 14px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-list-check" style="color:#007185; font-size:16px;"></i>
+              <label for="addressPageDropdown" style="font-weight:700; font-size:13px; color:#0f1111;">
+                Quick Select Address:
+              </label>
+            </div>
+            <select id="addressPageDropdown" class="spc-address-select" onchange="quickSelectAddress(this.value)">
+              <optgroup label="Saved Addresses">
+                {% for addr in addresses %}
+                  <option value="{{ addr.id }}" {% if selected_address and selected_address.id == addr.id %}selected{% endif %}>
+                    {{ addr.full_name }} — {{ addr.address_line1 }}, {{ addr.city }}, {{ addr.state }} {{ addr.zip_code }}{% if addr.is_default %} (Default){% endif %}
+                  </option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="Amazon Hub Lockers &amp; Pickup Counters">
+                {% for locker in hub_lockers %}
+                  <option value="{{ locker.id }}" {% if selected_address and selected_address.id == locker.id %}selected{% endif %}>
+                    [Locker] {{ locker.full_name }} — {{ locker.address_line1 }}, {{ locker.city }}, {{ locker.state }}
+                  </option>
+                {% endfor %}
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Saved Addresses Grid (IT-4) -->
+          <h3 style="font-size: 15px; margin: 18px 0 10px; color: #0f1111;">Your saved addresses</h3>
+          <div class="a-address-grid">
+            {% for addr in addresses %}
+              <div class="a-address-card it-boundary it-color-purple {% if selected_address and selected_address.id == addr.id %}selected{% endif %}" id="addr-card-{{ addr.id }}">
+                <div class="it-badge it-badge-purple" style="margin-bottom:6px;"><span class="it-badge-code">IT-4</span> <span class="it-badge-name">Autofill forms</span></div>
+                <div class="a-address-card-header">
+                  <strong>
+                    {% if addr.is_hub_locker %}<i class="fa-solid fa-box-archive" style="color:#007185;"></i> {% endif %}
+                    {{ addr.full_name }}
+                  </strong>
+                  {% if addr.is_default %}
+                    <span class="badge-default">Default</span>
+                  {% elif addr.is_hub_locker %}
+                    <span class="locker-badge-prime">Amazon Hub</span>
+                  {% endif %}
+                </div>
+
+                <div class="a-address-card-body">
+                  <div>{{ addr.address_line1 }}</div>
+                  {% if addr.address_line2 %}<div>{{ addr.address_line2 }}</div>{% endif %}
+                  <div>{{ addr.city }}, {{ addr.state }} {{ addr.zip_code }}</div>
+                  {% if addr.phone %}<div class="address-phone">Phone: {{ addr.phone }}</div>{% endif %}
+                  {% if addr.hours_info %}<div class="locker-hours"><i class="fa-regular fa-clock"></i> {{ addr.hours_info }}</div>{% endif %}
+
+                  {% if addr.delivery_instructions %}
+                    <div class="saved-instructions-badge">
+                      <i class="fa-solid fa-check"></i> Instructions: {{ addr.delivery_instructions }}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <div class="a-address-card-actions">
+                  <form action="/amazon/gp/buy/addressselect/select" method="POST">
+                    <input type="hidden" name="address_id" value="{{ addr.id }}">
+                    <button type="submit" class="a-btn-deliver-here">
+                      Deliver to this address
+                    </button>
+                  </form>
+                  <div class="a-address-sublinks">
+                    <button type="button" onclick="openInstructionsModal({{ addr.id }})">Add delivery instructions</button>
+                    <span>|</span>
+                    <a href="#">Edit</a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Add a New Address Toggle & Form -->
+          <div style="border-top: 1px solid #e7e7e7; padding-top: 16px; margin-top: 20px;">
+            <div class="add-card-toggle" onclick="toggleNewAddressForm()">
+              <i class="fa-solid fa-plus"></i>
+              <strong>Add a new delivery address</strong>
+            </div>
+
+            <div id="newAddressForm" style="display:none; margin-top: 14px; background: #fafafa; border: 1px solid #d5d9d9; padding: 18px; border-radius: 8px;">
+              <form action="/amazon/gp/buy/address/add" method="POST">
+                <div style="margin-bottom: 12px;">
+                  <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">Full name (First and last name)</label>
+                  <input type="text" name="full_name" required style="width: 100%; padding: 8px; border: 1px solid #d5d9d9; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">Street address</label>
+                  <input type="text" name="address_line1" placeholder="Street address or P.O. Box" required style="width: 100%; padding: 8px; border: 1px solid #d5d9d9; border-radius: 4px; margin-bottom: 6px;">
+                  <input type="text" name="address_line2" placeholder="Apt, suite, unit, building, floor, etc." style="width: 100%; padding: 8px; border: 1px solid #d5d9d9; border-radius: 4px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                  <div>
+                    <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">City</label>
+                    <input type="text" name="city" required style="width: 100%; padding: 8px; border: 1px solid #d5d9d9; border-radius: 4px;">
+                  </div>
+                  <div>
+                    <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">State</label>
+                    <input type="text" name="state" required style="width: 100%; padding: 8px; border: 1px solid #d5d9d9; border-radius: 4px;">
+                  </div>
+                  <div>
+                    <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">ZIP Code</label>
+                    <input type="text" name="zip_code" required style="width: 100%; padding: 8px; border: 1px solid #d5d9d9; border-radius: 4px;">
+                  </div>
+                </div>
+                <div style="margin-bottom: 14px;">
+                  <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">Phone number</label>
+                  <input type="text" name="phone" placeholder="May be used to assist delivery" style="width: 100%; padding: 8px; border: 1px solid #d5d9d9; border-radius: 4px;">
+                </div>
+                <button type="submit" class="a-btn-deliver-here" style="width: auto; padding: 8px 24px;">Use this address</button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Sticky Summary Box -->
+      <div class="spc-summary-col">
+        <div class="spc-summary-card">
+          <a href="/amazon/gp/buy/spc/handlers/display.html" class="a-btn-yellow a-btn-place-order" style="display:block; text-align:center; text-decoration:none;">
+            Return to Checkout
+          </a>
+          <hr class="summary-divider">
+          <h3>Order Summary</h3>
+          <div class="summary-row">
+            <span>Items ({{ cart_count }}):</span>
+            <span>${{ "%.2f"|format(subtotal) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Shipping:</span>
+            <span>FREE</span>
+          </div>
+          <div class="summary-row">
+            <span>Estimated tax:</span>
+            <span>${{ "%.2f"|format(subtotal * 0.0825) }}</span>
+          </div>
+          <hr class="summary-divider">
+          <div class="summary-total-row">
+            <span>Order total:</span>
+            <span>${{ "%.2f"|format(subtotal + (subtotal * 0.0825)) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= Delivery Instructions Modal (IT-13 Dialog) ================= -->
+  <div class="a-checkout-modal-backdrop" id="instructionsModal">
+    <div class="a-checkout-modal-box it-boundary it-color-amber">
+      <div class="it-badge it-badge-amber" style="margin-bottom:8px;"><span class="it-badge-code">IT-13</span> <span class="it-badge-name">Fill optional details</span></div>
+      <div class="a-checkout-modal-header">
+        <h3><i class="fa-solid fa-clipboard-list" style="color:#007185;"></i> Add delivery instructions</h3>
+        <button type="button" class="btn-close-modal" onclick="closeInstructionsModal()">&times;</button>
+      </div>
+      <div class="a-checkout-modal-body">
+        <form id="instructionsForm" onsubmit="saveInstructions(event)">
+          <input type="hidden" name="address_id" id="modalAddressId" value="1">
+
+          <!-- 1. Property Type -->
+          <div class="instruction-field-group">
+            <label class="field-title">Property type</label>
+            <div class="field-hint">Helps the carrier locate where to deliver safely.</div>
+            <div class="property-type-chips">
+              <label class="property-chip" onclick="selectPropertyChip(this)">
+                <input type="radio" name="property_type" value="House" checked>
+                <span>🏠 House</span>
+              </label>
+              <label class="property-chip" onclick="selectPropertyChip(this)">
+                <input type="radio" name="property_type" value="Apartment">
+                <span>🏢 Apartment</span>
+              </label>
+              <label class="property-chip" onclick="selectPropertyChip(this)">
+                <input type="radio" name="property_type" value="Business">
+                <span>🏬 Business</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 2. Where should we leave your packages? -->
+          <div class="instruction-field-group">
+            <label class="field-title">Where should we leave your packages?</label>
+            <div class="dropoff-radio-list">
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Front door / Front porch" checked>
+                <span>Front door / Front porch</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Back porch / Patio">
+                <span>Back porch / Patio</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Garage / Carport">
+                <span>Garage / Carport</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="Building reception / Front desk">
+                <span>Building reception / Concierge</span>
+              </label>
+              <label class="dropoff-radio-option">
+                <input type="radio" name="dropoff_location" value="With a neighbor">
+                <span>With a neighbor</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Security Access Code -->
+          <div class="instruction-field-group">
+            <label class="field-title">Security access code / Gate code</label>
+            <div class="field-hint">Building access code, call box code, or keypad PIN (optional):</div>
+            <input type="text" name="access_code" id="accessCodeInput" class="access-code-input" placeholder="e.g. #4921 or Key in 108" value="#4921">
+          </div>
+
+          <!-- 4. Weekend Delivery Preferences -->
+          <div class="instruction-field-group">
+            <label class="field-title">Weekend delivery preferences</label>
+            <div class="weekend-toggles">
+              <label class="weekend-toggle-item">
+                <input type="checkbox" name="deliver_sat" value="1" checked> Can deliver on Saturday
+              </label>
+              <label class="weekend-toggle-item">
+                <input type="checkbox" name="deliver_sun" value="1" checked> Can deliver on Sunday
+              </label>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #eee; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn-pill-action" onclick="closeInstructionsModal()">Cancel</button>
+            <button type="submit" class="a-btn-deliver-here" style="width: auto; padding: 8px 24px;">Save delivery instructions</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Amazon Hub Locker Picker Modal (IT-13 Dialog) ================= -->
+  <div class="a-checkout-modal-backdrop" id="lockerModal">
+    <div class="a-checkout-modal-box it-boundary it-color-amber">
+      <div class="it-badge it-badge-amber" style="margin-bottom:8px;"><span class="it-badge-code">IT-13</span> <span class="it-badge-name">Fill optional details</span></div>
+      <div class="a-checkout-modal-header">
+        <h3><i class="fa-solid fa-box-archive" style="color:#007185;"></i> Find an Amazon Hub Locker nearby</h3>
+        <button type="button" class="btn-close-modal" onclick="closeLockerModal()">&times;</button>
+      </div>
+      <div class="a-checkout-modal-body">
+        <p style="font-size: 13px; color: #565959; margin-bottom: 14px;">
+          Pick up your package securely from a self-service touchscreen locker or counter location. Packages are stored safely for 3 days.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="locker-search-box">
+          <input type="text" id="lockerSearchInput" class="locker-search-input" value="97477" placeholder="Search by ZIP code or city">
+          <button type="button" class="btn-locker-search" onclick="filterLockers()">Search Lockers</button>
+        </div>
+
+        <!-- Locker List -->
+        <div id="lockerListContainer">
+          {% for locker in hub_lockers %}
+            <div class="locker-item-card">
+              <div>
+                <span class="locker-badge-prime"><i class="fa-solid fa-bolt"></i> FREE Prime Pickup</span>
+                <div class="locker-title">{{ locker.full_name }}</div>
+                <div class="locker-address">{{ locker.address_line1 }}{% if locker.address_line2 %}, {{ locker.address_line2 }}{% endif %}, {{ locker.city }}, {{ locker.state }} {{ locker.zip_code }}</div>
+                <div class="locker-hours"><i class="fa-regular fa-clock"></i> {{ locker.hours_info }}</div>
+                <div class="locker-distance"><i class="fa-solid fa-location-dot"></i> Distance: {{ loop.index * 0.7 }} miles away</div>
+              </div>
+              <form action="/amazon/gp/buy/addressselect/select" method="POST">
+                <input type="hidden" name="address_id" value="{{ locker.id }}">
+                <button type="submit" class="btn-select-locker">Ship to this Locker</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global IT Bounding Box Toggle Logic
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function openInstructionsModal(addrId) {
+      document.getElementById('modalAddressId').value = addrId;
+      document.getElementById('instructionsModal').classList.add('active');
+    }
+    function closeInstructionsModal() {
+      document.getElementById('instructionsModal').classList.remove('active');
+    }
+    function openLockerModal() {
+      document.getElementById('lockerModal').classList.add('active');
+    }
+    function closeLockerModal() {
+      document.getElementById('lockerModal').classList.remove('active');
+    }
+    function toggleNewAddressForm() {
+      const el = document.getElementById('newAddressForm');
+      el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+    }
+    function selectPropertyChip(elem) {
+      document.querySelectorAll('.property-chip').forEach(c => c.classList.remove('active'));
+      elem.classList.add('active');
+    }
+
+    async function saveInstructions(e) {
+      e.preventDefault();
+      const form = document.getElementById('instructionsForm');
+      const formData = new FormData(form);
+      const res = await fetch('/amazon/gp/delivery/instructions/save', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeInstructionsModal();
+        window.location.reload();
+      }
+    }
+
+    function quickSelectAddress(addrId) {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/amazon/gp/buy/addressselect/select';
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'address_id';
+      input.value = addrId;
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) {
+        return;
+      }
+      fetch('/api/benchmark/reset', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
+          });
+        } catch (e) {}
+        alert("Environment reset complete! State, database, and cookies have been restored to defaults.");
+        window.location.reload();
+      })
+      .catch(err => {
+        window.location.href = '/api/benchmark/reset';
+      });
+    }
+
+    function filterLockers() {
+      const q = document.getElementById('lockerSearchInput').value.trim();
+      alert('Showing verified Amazon Hub pickup locations near ' + (q || 'your area'));
+    }
+  </script>
+
+</body>
+</html>

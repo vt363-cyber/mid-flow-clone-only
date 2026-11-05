@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gmail — Google Workspace Inbox</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='gmail.css') }}">
+</head>
+<body class="gmail-body">
+
+  <!-- ================= BENCHMARK MULTI-TASK HUB BAR ================= -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Benchmark Task Hub">
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= GMAIL TOP HEADER ================= -->
+  <header class="gmail-header">
+    <div class="gmail-logo-wrap">
+      <button class="btn-icon-menu"><i class="fa-solid fa-bars"></i></button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-envelope" style="color: #ea4335; font-size: 24px;"></i>
+        <span style="font-size: 22px; color: #444746; font-family: 'Google Sans', sans-serif;">Gmail</span>
+      </div>
+    </div>
+
+    <!-- Search in Mail -->
+    <div class="gmail-search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon-left"></i>
+      <input type="text" class="gmail-search-bar" placeholder="Search in mail" value="{{ search_q or '' }}">
+      <i class="fa-solid fa-sliders search-icon-right" title="Search filters"></i>
+    </div>
+
+    <!-- Header User Actions -->
+    <div class="gmail-header-actions">
+      <button class="btn-icon-menu" title="Google apps"><i class="fa-solid fa-grip"></i></button>
+      <div class="user-avatar" title="Google Account: Alex Mercer (alex.mercer@company.com)">A</div>
+    </div>
+  </header>
+
+  <!-- ================= GMAIL MAIN BODY ================= -->
+  <div class="gmail-layout">
+    <!-- Left Sidebar -->
+    <aside class="gmail-sidebar">
+      <button class="btn-compose" onclick="openComposeWindow()">
+        <i class="fa-solid fa-pen" style="font-size: 16px;"></i>
+        <span>Compose</span>
+      </button>
+
+      <ul class="sidebar-nav-list">
+        <li class="sidebar-nav-item {% if current_folder == 'inbox' %}active{% endif %}">
+          <a href="/gmail?folder=inbox">
+            <span class="nav-item-left"><i class="fa-solid fa-inbox"></i> Inbox</span>
+            <span class="nav-badge" id="inboxCountBadge">{{ unread_count }}</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item {% if current_folder == 'starred' %}active{% endif %}">
+          <a href="/gmail?folder=starred">
+            <span class="nav-item-left"><i class="fa-regular fa-star"></i> Starred</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item {% if current_folder == 'sent' %}active{% endif %}">
+          <a href="/gmail?folder=sent">
+            <span class="nav-item-left"><i class="fa-regular fa-paper-plane"></i> Sent</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item {% if current_folder == 'drafts' %}active{% endif %}">
+          <a href="/gmail?folder=drafts">
+            <span class="nav-item-left"><i class="fa-regular fa-file"></i> Drafts</span>
+            <span class="nav-badge" id="draftsCountBadge">{{ drafts_count }}</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Mail Pane -->
+    <main class="gmail-main-pane">
+      <div class="mail-toolbar">
+        <input type="checkbox" title="Select all" style="cursor: pointer;">
+        <button class="toolbar-btn" title="Refresh" onclick="window.location.reload()"><i class="fa-solid fa-arrow-rotate-right"></i></button>
+        <button class="toolbar-btn" title="Mark as read"><i class="fa-regular fa-envelope-open"></i></button>
+        <button class="toolbar-btn" title="Delete"><i class="fa-regular fa-trash-can"></i></button>
+        <div style="flex:1;"></div>
+        <span style="font-size: 12px; color: #5f6368;">1–{{ messages|length }} of {{ messages|length }}</span>
+      </div>
+
+      <!-- Mail List -->
+      <div class="mail-list-container">
+        {% if messages %}
+          {% for m in messages %}
+            <div class="mail-row {% if not m.is_read %}unread{% endif %}">
+              <div class="mail-check-col" onclick="event.stopPropagation()">
+                <input type="checkbox">
+              </div>
+              <div class="mail-star-col" onclick="event.stopPropagation()">
+                <i class="fa-{% if m.is_starred %}solid active{% else %}regular{% endif %} fa-star"></i>
+              </div>
+              <div class="mail-sender-col">
+                {{ m.sender_name or m.sender }}
+              </div>
+              <div class="mail-content-col">
+                <span class="mail-subject">{{ m.subject }}</span>
+                <span style="color:#888;">—</span>
+                <span class="mail-snippet">{{ m.body[:90] }}...</span>
+                <div class="mail-badges">
+                  {% if m.has_drive_attachment %}
+                    <span class="badge-drive-file"><i class="fa-brands fa-google-drive"></i> {{ m.drive_file_name or 'Drive File' }}</span>
+                  {% endif %}
+                  {% if m.is_confidential %}
+                    <span class="badge-confidential-tag"><i class="fa-solid fa-lock"></i> Expires {{ m.confidential_expiration }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="mail-date-col">
+                {{ m.created_at[11:16] }}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="padding: 40px; text-align: center; color: #5f6368;">
+            <i class="fa-regular fa-folder-open" style="font-size: 38px; margin-bottom: 12px; color: #aaa;"></i>
+            <p>Your {{ current_folder }} folder is empty.</p>
+          </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= FLOATING GMAIL COMPOSE WINDOW ================= -->
+  <div class="gmail-compose-window" id="composeWindow">
+    <div class="compose-header">
+      <span class="compose-title">New Message</span>
+      <div class="compose-header-actions">
+        <button class="btn-compose-ctrl" title="Minimize"><i class="fa-solid fa-minus"></i></button>
+        <button class="btn-compose-ctrl" title="Full screen"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+        <button class="btn-compose-ctrl" title="Save & Close" onclick="closeAndSaveDraft()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+
+    <form id="composeForm" onsubmit="sendEmail(event)" class="compose-body-form">
+      <input type="hidden" name="draft_id" id="composeDraftId" value="">
+      <input type="hidden" name="body" id="hiddenBodyInput" value="">
+
+      <!-- Recipients Field with External Detection -->
+      <div class="compose-field-row">
+        <span class="compose-label">To</span>
+        <div class="recipient-tags-wrap" id="recipientsWrap">
+          <input type="text" id="recipientInput" class="compose-input" placeholder="Recipients (e.g. sarah.investor@external-corp.com)" oninput="checkRecipientExternal(this.value)" onblur="checkRecipientExternal(this.value)">
+        </div>
+      </div>
+
+      <!-- IT-14: Step 3: Only mention External Recipient Warning -->
+      <div class="external-recipient-alert it-boundary it-color-rose" id="externalWarningAlert">
+        <div class="it-badge it-badge-rose" style="margin-bottom:6px;"><span class="it-badge-code">IT-14</span> <span class="it-badge-name">Resolve whether to disclose to recipient</span></div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-triangle-exclamation" style="color:#c5221f;"></i>
+            <strong>External Recipient Warning</strong>
+          </div>
+          <div class="external-alert-actions" style="margin-top:0;">
+            <button type="button" class="btn-keep-recipient" onclick="acknowledgeExternalRecipient()">Acknowledge</button>
+            <button type="button" class="btn-dismiss-alert" onclick="removeExternalRecipient()">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subject Field -->
+      <div class="compose-field-row">
+        <input type="text" id="composeSubject" name="subject" class="compose-input" placeholder="Subject" value="Q4 Executive Financial Report & Audit Files">
+      </div>
+
+      <!-- Attached Google Drive Files (IT-8 & IT-15 & IT-16 Expiration) -->
+      <div class="attached-drive-chips-box" id="attachedDriveChipsBox"></div>
+
+      <!-- Message Body with Clickable Typo Spell-Check (IT-22) -->
+      <div class="compose-textarea-wrap">
+        <div id="composeBodyEditor" class="compose-editable-area" contenteditable="true">Dear Executive Board,<br><br>Please find <span class="typo-word" id="typo1" onclick="openTypoSpellcheck(this, 'recieve', 'receive', event)" title="Click to fix spelling">recieve</span> the <span class="typo-word" id="typo2" onclick="openTypoSpellcheck(this, 'attched', 'attached', event)" title="Click to fix spelling">attched</span> Q4 executive report from Google Drive before tomorrow's meeting.<br><br>Best regards,<br>Alex Mercer</div>
+
+        <!-- Popover anchored to clicked typo (IT-22 Dialog) -->
+        <div class="typo-spellcheck-popup it-boundary it-color-indigo" id="typoSpellcheckPopup">
+          <div class="it-badge it-badge-indigo" style="margin-bottom:6px;"><span class="it-badge-code">IT-22</span> <span class="it-badge-name">Decide to use internal tools or extensions</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:12px; color:#1a73e8;"><i class="fa-solid fa-spell-check"></i> Spell check (IT-22)</strong>
+            <button type="button" onclick="closeTypoPopup()" style="background:none; border:none; cursor:pointer; font-size:14px; color:#888;">&times;</button>
+          </div>
+          <div style="font-size:13px; margin-bottom:8px;">
+            Change to: <strong id="typoReplacementWord" style="color:#188038;">receive</strong>
+          </div>
+          <button type="button" class="btn-apply-spellcheck" onclick="applyTypoFix()">
+            Accept Correction
+          </button>
+        </div>
+      </div>
+
+      <!-- Compose Footer Toolbar -->
+      <div class="compose-footer-toolbar">
+        <div class="compose-send-group">
+          <button type="submit" class="btn-send-main">Send</button>
+          <button type="button" class="btn-send-split"><i class="fa-solid fa-caret-down"></i></button>
+        </div>
+
+        <div class="compose-icons-bar">
+          <button type="button" class="btn-compose-icon" title="Formatting options"><i class="fa-solid fa-font"></i></button>
+          <button type="button" class="btn-compose-icon" title="Attach files"><i class="fa-solid fa-paperclip"></i></button>
+
+          <!-- IT-8: Google Drive Picker Trigger (No boundary, boundary is on modal) -->
+          <button type="button" class="btn-compose-icon" id="btnDrivePicker" title="Insert files using Drive" onclick="openDrivePickerModal()">
+            <i class="fa-brands fa-google-drive" style="color:#1a73e8; font-size:17px;"></i>
+          </button>
+
+          <button type="button" class="btn-compose-icon" title="Discard draft" onclick="discardDraft()"><i class="fa-regular fa-trash-can"></i></button>
+        </div>
+
+        <div class="draft-saved-text" id="draftStatusText">Draft saved</div>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= 1. GOOGLE DRIVE FILE PICKER MODAL (IT-8 Dialog) ================= -->
+  <div class="g-modal-backdrop" id="drivePickerModal">
+    <div class="g-modal-card it-boundary it-color-blue">
+      <div class="it-badge it-badge-blue" style="margin-bottom:8px;"><span class="it-badge-code">IT-8</span> <span class="it-badge-name">Decide and authorize an application connection</span></div>
+      <div class="g-modal-header">
+        <h3><i class="fa-brands fa-google-drive" style="color:#1a73e8;"></i> Select Drive File (IT-8)</h3>
+        <button type="button" class="btn-compose-ctrl" onclick="closeDrivePickerModal()">&times;</button>
+      </div>
+      <div class="g-modal-body">
+        <p style="font-size: 13px; color: #5f6368; margin-bottom: 10px;">
+          Choose an executive report from your Google Drive:
+        </p>
+
+        <div class="drive-file-list">
+          <!-- Q4_Executive_Financial_Report.docx -->
+          <div class="drive-file-item selected" onclick="selectDriveFile(this, 'Q4_Executive_Financial_Report.docx', 'docx')">
+            <i class="fa-solid fa-file-word" style="color:#185abd; font-size:22px;"></i>
+            <div>
+              <strong style="font-size: 13px;">Q4_Executive_Financial_Report.docx</strong>
+              <div class="drive-file-meta">Microsoft Word &bull; Modified yesterday &bull; 1.4 MB</div>
+            </div>
+          </div>
+
+          <!-- Q4_Executive_Financial_Report.pptx -->
+          <div class="drive-file-item" onclick="selectDriveFile(this, 'Q4_Executive_Financial_Report.pptx', 'pptx')">
+            <i class="fa-solid fa-file-powerpoint" style="color:#c43e1c; font-size:22px;"></i>
+            <div>
+              <strong style="font-size: 13px;">Q4_Executive_Financial_Report.pptx</strong>
+              <div class="drive-file-meta">Microsoft PowerPoint Presentation &bull; 3.2 MB</div>
+            </div>
+          </div>
+
+          <!-- Q4_Executive_Financial_Report.pdf -->
+          <div class="drive-file-item" onclick="selectDriveFile(this, 'Q4_Executive_Financial_Report.pdf', 'pdf')">
+            <i class="fa-solid fa-file-pdf" style="color:#ea4335; font-size:22px;"></i>
+            <div>
+              <strong style="font-size: 13px;">Q4_Executive_Financial_Report.pdf</strong>
+              <div class="drive-file-meta">PDF Document &bull; 2.4 MB</div>
+            </div>
+          </div>
+
+          <!-- Annual_Revenue_Projections_2026.xlsx -->
+          <div class="drive-file-item" onclick="selectDriveFile(this, 'Annual_Revenue_Projections_2026.xlsx', 'xlsx')">
+            <i class="fa-solid fa-file-excel excel" style="color:#107c41; font-size:22px;"></i>
+            <div>
+              <strong style="font-size: 13px;">Annual_Revenue_Projections_2026.xlsx</strong>
+              <div class="drive-file-meta">Excel Spreadsheet &bull; 1.8 MB</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="g-modal-footer">
+        <button type="button" class="btn-g-secondary" onclick="closeDrivePickerModal()">Cancel</button>
+        <button type="button" class="btn-g-primary" onclick="openDriveShareDialog()">Next: Share &amp; Permissions &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. MODERN GOOGLE DRIVE SHARE DIALOG (IT-15 & IT-16 Dialogs) ================= -->
+  <div class="g-modal-backdrop" id="driveShareModal">
+    <div class="gdrive-share-card it-boundary it-color-blue">
+      <div class="it-badge it-badge-blue" style="margin-bottom:8px;"><span class="it-badge-code">IT-15</span> <span class="it-badge-name">Resolve recipient content visibility and permission scope</span></div>
+      <div class="gdrive-share-header">
+        <div class="gdrive-share-title">
+          <i class="fa-brands fa-google-drive" style="color:#1a73e8; font-size:22px;"></i>
+          <span>Share "<span id="shareFileNameDisplay">Q4_Executive_Financial_Report.docx</span>"</span>
+        </div>
+        <button type="button" class="btn-compose-ctrl" title="Settings"><i class="fa-solid fa-gear"></i></button>
+      </div>
+
+      <div class="gdrive-share-body">
+        <!-- Add people input box -->
+        <div class="gdrive-add-people-box">
+          <div class="gdrive-chip">
+            <span>Sarah Investor (sarah.investor@external-corp.com)</span>
+            <i class="fa-solid fa-xmark" style="cursor:pointer;"></i>
+          </div>
+        </div>
+
+        <!-- People with access list -->
+        <div class="gdrive-people-access">
+          <h4 style="font-size:12px; font-weight:700; color:#5f6368; text-transform:uppercase; margin-bottom:8px;">People with access</h4>
+
+          <!-- Owner: Alex Mercer -->
+          <div class="gdrive-user-row">
+            <div class="gdrive-user-info">
+              <div class="gdrive-avatar">A</div>
+              <div class="gdrive-user-names">
+                <strong>Alex Mercer (you)</strong>
+                <div>alex.mercer@company.com</div>
+              </div>
+            </div>
+            <span style="font-size:12px; color:#5f6368; font-weight:600;">Owner</span>
+          </div>
+
+          <!-- Recipient: Sarah Investor with Role Dropdown -->
+          <div class="gdrive-user-row" style="margin-top:6px;">
+            <div class="gdrive-user-info">
+              <div class="gdrive-avatar sarah">S</div>
+              <div class="gdrive-user-names">
+                <strong>Sarah Investor</strong>
+                <div>sarah.investor@external-corp.com</div>
+              </div>
+            </div>
+
+            <!-- Permission Scope Dropdown -->
+            <select id="userPermissionRole" class="gdrive-role-dropdown" onchange="updateDrivePermissionsUI()">
+              <option value="Viewer" selected>Viewer</option>
+              <option value="Commenter">Commenter</option>
+              <option value="Editor">Editor</option>
+            </select>
+          </div>
+
+          <!-- IT-16: Time Expiration Directly Under Google Drive Permission Scope -->
+          <div class="gdrive-expiration-box it-boundary it-color-blue" style="padding: 6px 10px; border-radius: 6px; margin-top: 10px;">
+            <div class="it-badge it-badge-blue" style="margin-bottom:4px;"><span class="it-badge-code">IT-16</span> <span class="it-badge-name">Set time limit while sharing sensitive information</span></div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i class="fa-regular fa-clock" style="color:#1a73e8; font-size:15px;"></i>
+              <span style="font-size:12px; font-weight:600; color:#1f1f1f;">Access expiration:</span>
+            </div>
+            <select id="driveExpirationSelect" class="gdrive-expiry-select">
+              <option value="7 days" selected>Expires in 7 days (Nov 11, 2026)</option>
+              <option value="1 day">Expires in 1 day (Tomorrow)</option>
+              <option value="30 days">Expires in 30 days (1 month)</option>
+              <option value="never">No expiration</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- General Access -->
+        <div class="gdrive-general-access-box">
+          <h4 style="font-size:12px; font-weight:700; color:#5f6368; text-transform:uppercase; margin-bottom:8px;">General access</h4>
+          <div class="gdrive-general-row">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <i class="fa-solid fa-lock" style="font-size:18px; color:#5f6368;"></i>
+              <div>
+                <select id="driveGeneralAccessSelect" class="gdrive-role-dropdown" style="font-weight:700;">
+                  <option value="Restricted" selected>Restricted</option>
+                  <option value="Company Domain">Company Domain (@company.com)</option>
+                  <option value="Anyone with the link">Anyone with the link</option>
+                </select>
+                <div style="font-size:11px; color:#5f6368; margin-top:2px;">Only people with access can open with the link</div>
+              </div>
+            </div>
+            <select class="gdrive-role-dropdown">
+              <option value="Viewer" selected>Viewer</option>
+              <option value="Commenter">Commenter</option>
+              <option value="Editor">Editor</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="g-modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" class="btn-g-copy-link" onclick="copyDriveLink()">
+          <i class="fa-solid fa-link"></i> Copy link
+        </button>
+        <button type="button" class="btn-g-done" onclick="attachDriveShareToEmail()">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="gmail-toast" id="gmailToast">
+    <span id="toastMessage">Message sent.</span>
+    <a href="#" onclick="event.preventDefault()">Undo</a>
+  </div>
+
+  <!-- ================= GMAIL CLIENT SCRIPT ================= -->
+  <script>
+    // Global IT Bounding Box Toggle Logic
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    let activeDriveFile = 'Q4_Executive_Financial_Report.docx';
+    let attachedFiles = [];
+    let isExternalRecipient = false;
+    let currentTypoElement = null;
+    let currentTypoTargetWord = '';
+
+    function openComposeWindow() {
+      document.getElementById('composeWindow').classList.add('active');
+      const recipientField = document.getElementById('recipientInput');
+      if (!recipientField.value) {
+        recipientField.value = 'sarah.investor@external-corp.com';
+        checkRecipientExternal(recipientField.value);
+      }
+    }
+
+    async function closeAndSaveDraft() {
+      const subject = document.getElementById('composeSubject').value;
+      const body = document.getElementById('composeBodyEditor').innerText;
+      const recipient = document.getElementById('recipientInput').value;
+
+      const formData = new FormData();
+      formData.append('folder', 'drafts');
+      formData.append('recipient', recipient);
+      formData.append('subject', subject);
+      formData.append('body', body);
+      formData.append('has_drive_attachment', attachedFiles.length > 0 ? '1' : '0');
+      formData.append('drive_file_name', attachedFiles.join(', '));
+
+      await fetch('/gmail/save_draft', { method: 'POST', body: formData });
+      document.getElementById('composeWindow').classList.remove('active');
+      showToast('Draft saved.');
+      setTimeout(() => window.location.reload(), 800);
+    }
+
+    // IT-14: Step 3: Only mention External Recipient Warning
+    function checkRecipientExternal(email) {
+      email = email.trim();
+      if (!email) return;
+      const warningBox = document.getElementById('externalWarningAlert');
+      if (!email.endsWith('@company.com')) {
+        isExternalRecipient = true;
+        warningBox.style.display = 'block';
+      } else {
+        isExternalRecipient = false;
+        warningBox.style.display = 'none';
+      }
+    }
+
+    function acknowledgeExternalRecipient() {
+      document.getElementById('externalWarningAlert').style.display = 'none';
+    }
+
+    function removeExternalRecipient() {
+      document.getElementById('recipientInput').value = '';
+      document.getElementById('externalWarningAlert').style.display = 'none';
+      isExternalRecipient = false;
+    }
+
+    // IT-22: Step 4: Open Spell Check on Typo Click
+    function openTypoSpellcheck(elem, wrongWord, correctWord, evt) {
+      evt.stopPropagation();
+      currentTypoElement = elem;
+      currentTypoTargetWord = correctWord;
+
+      const popup = document.getElementById('typoSpellcheckPopup');
+      document.getElementById('typoReplacementWord').innerText = correctWord;
+
+      // Position popup right below clicked typo
+      const rect = elem.getBoundingClientRect();
+      const parentRect = elem.closest('.compose-textarea-wrap').getBoundingClientRect();
+      popup.style.top = (rect.bottom - parentRect.top + 6) + 'px';
+      popup.style.left = (rect.left - parentRect.left) + 'px';
+      popup.classList.add('active');
+    }
+
+    function closeTypoPopup() {
+      document.getElementById('typoSpellcheckPopup').classList.remove('active');
+    }
+
+    function applyTypoFix() {
+      if (currentTypoElement) {
+        currentTypoElement.innerText = currentTypoTargetWord;
+        currentTypoElement.classList.remove('typo-word');
+        currentTypoElement.onclick = null;
+        currentTypoElement.style.textDecoration = 'none';
+        currentTypoElement.style.background = 'none';
+      }
+      closeTypoPopup();
+      showToast('Corrected to "' + currentTypoTargetWord + '"');
+    }
+
+    // IT-8: Drive Picker
+    function openDrivePickerModal() {
+      document.getElementById('drivePickerModal').classList.add('active');
+    }
+    function closeDrivePickerModal() {
+      document.getElementById('drivePickerModal').classList.remove('active');
+    }
+
+    function selectDriveFile(elem, fileName, type) {
+      document.querySelectorAll('.drive-file-item').forEach(i => i.classList.remove('selected'));
+      elem.classList.add('selected');
+      activeDriveFile = fileName;
+    }
+
+    // IT-15 & IT-16: Drive Share Dialog with Expiration under permission scope
+    function openDriveShareDialog() {
+      closeDrivePickerModal();
+      document.getElementById('shareFileNameDisplay').innerText = activeDriveFile;
+      document.getElementById('driveShareModal').classList.add('active');
+    }
+    function closeDriveShareModal() {
+      document.getElementById('driveShareModal').classList.remove('active');
+    }
+
+    function copyDriveLink() {
+      showToast('Link copied to clipboard.');
+    }
+
+    function attachDriveShareToEmail() {
+      const role = document.getElementById('userPermissionRole').value;
+      const expiry = document.getElementById('driveExpirationSelect').value;
+      closeDriveShareModal();
+
+      if (!attachedFiles.includes(activeDriveFile)) {
+        attachedFiles.push(activeDriveFile);
+      }
+
+      let iconClass = 'fa-file-word';
+      let iconColor = '#185abd';
+      if (activeDriveFile.endsWith('.pptx')) { iconClass = 'fa-file-powerpoint'; iconColor = '#c43e1c'; }
+      else if (activeDriveFile.endsWith('.pdf')) { iconClass = 'fa-file-pdf'; iconColor = '#ea4335'; }
+      else if (activeDriveFile.endsWith('.xlsx')) { iconClass = 'fa-file-excel'; iconColor = '#107c41'; }
+
+      const chipsBox = document.getElementById('attachedDriveChipsBox');
+      chipsBox.innerHTML = `
+        <div class="drive-attached-pill">
+          <div class="drive-pill-left">
+            <i class="fa-solid ${iconClass}" style="color:${iconColor}; font-size:18px;"></i>
+            <strong>${activeDriveFile}</strong>
+            <span class="drive-pill-scope">${role}</span>
+            <span style="font-size:11px; color:#5f6368;"><i class="fa-regular fa-clock"></i> Expires: ${expiry}</span>
+          </div>
+          <i class="fa-solid fa-xmark" style="cursor:pointer;" onclick="this.parentElement.remove()"></i>
+        </div>
+      `;
+      document.getElementById('btnDrivePicker').classList.add('active');
+      showToast('Drive file attached with ' + role + ' permissions (' + expiry + ')');
+    }
+
+    // Send Email
+    async function sendEmail(e) {
+      e.preventDefault();
+      const subject = document.getElementById('composeSubject').value;
+      const body = document.getElementById('composeBodyEditor').innerText;
+      const recipient = document.getElementById('recipientInput').value;
+
+      if (!recipient) {
+        alert('Please specify at least one recipient.');
+        return;
+      }
+
+      const expiry = document.getElementById('driveExpirationSelect').value;
+
+      const formData = new FormData();
+      formData.append('folder', 'sent');
+      formData.append('recipient', recipient);
+      formData.append('subject', subject);
+      formData.append('body', body);
+      formData.append('has_drive_attachment', attachedFiles.length > 0 ? '1' : '0');
+      formData.append('drive_file_name', attachedFiles.join(', '));
+      formData.append('is_confidential', expiry !== 'never' ? '1' : '0');
+      formData.append('confidential_expiration', expiry);
+      formData.append('has_external_recipient', isExternalRecipient ? '1' : '0');
+
+      const res = await fetch('/gmail/send', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('composeWindow').classList.remove('active');
+        showToast('Message sent.');
+        setTimeout(() => window.location.href = '/gmail?folder=sent', 1000);
+      }
+    }
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) {
+        return;
+      }
+      fetch('/api/benchmark/reset', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
+          });
+        } catch (e) {}
+        alert("Environment reset complete! State, database, and cookies have been restored to defaults.");
+        window.location.reload();
+      })
+      .catch(err => {
+        window.location.href = '/api/benchmark/reset';
+      });
+    }
+
+    function discardDraft() {
+      if (confirm('Discard this draft?')) {
+        document.getElementById('composeWindow').classList.remove('active');
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('gmailToast');
+      document.getElementById('toastMessage').innerText = msg;
+      t.classList.add('active');
+      setTimeout(() => t.classList.remove('active'), 4000);
+    }
+  </script>
+</body>
+</html>

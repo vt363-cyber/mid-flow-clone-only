@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Fare &amp; Cabin | {{ flight.airline }} Flight {{ flight.flight_number }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='expedia.css') }}">
+</head>
+<body class="exp-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <header class="exp-header">
+    <a href="/expedia" class="exp-logo">
+      <i class="fa-solid fa-plane-departure" style="color:var(--exp-yellow);"></i>
+      <span>Expedia</span><span class="exp-logo-dot">.com</span>
+    </a>
+    <div class="exp-nav-items">
+      <a href="/expedia" class="exp-nav-item">&larr; Back to all flights</a>
+    </div>
+  </header>
+
+  <div class="exp-container" style="max-width:980px; margin:32px auto;">
+    <h1 style="font-size:24px; font-weight:800; color:var(--exp-text); margin-bottom:18px;">
+      Review your flight &amp; choose your cabin class
+    </h1>
+
+    <!-- Flight Overview Card -->
+    <div style="background:#fff; border:1px solid var(--exp-border); border-radius:12px; padding:24px; margin-bottom:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eef1f5; padding-bottom:14px; margin-bottom:16px;">
+        <div>
+          <strong style="color:var(--exp-blue); font-size:16px;">{{ flight.airline }} &bull; {{ flight.flight_number }}</strong>
+          <span style="color:var(--exp-subtext); margin-left:8px; font-size:13px;">Boeing 767-300ER</span>
+        </div>
+        <span style="font-weight:700; color:var(--exp-green); font-size:13px;"><i class="fa-solid fa-check-circle"></i> On-time history: 92%</span>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:20px; font-weight:800; color:var(--exp-text);">{{ flight.depart_time }}</div>
+          <div style="font-weight:700; color:var(--exp-blue);">{{ flight.origin_city }} ({{ flight.origin_code }})</div>
+        </div>
+
+        <div style="text-align:center; padding:0 30px;">
+          <span style="font-size:12px; color:var(--exp-subtext); font-weight:600;">{{ flight.duration }}</span>
+          <div style="width:140px; height:2px; background:#94a3b8; position:relative; margin:6px auto;"></div>
+          <span style="font-size:12px; color:var(--exp-green); font-weight:700;">{{ flight.stops_info }}</span>
+        </div>
+
+        <div>
+          <div style="font-size:20px; font-weight:800; color:var(--exp-text);">{{ flight.arrive_time }}</div>
+          <div style="font-weight:700; color:var(--exp-blue);">{{ flight.dest_city }} ({{ flight.dest_code }})</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IT-12: Cabin Class Selection (Additional Options) -->
+    <div class="it-boundary it-color-amber" style="margin-bottom:24px; padding:8px;">
+      <div class="it-badge it-badge-amber">
+        <span class="it-badge-code">IT-12</span>
+        <span class="it-badge-name">Fill additional options</span>
+      </div>
+      <h2 style="font-size:18px; font-weight:800; color:var(--exp-text); margin-bottom:14px;">Select Cabin Tier</h2>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+        <!-- Standard Main Cabin -->
+        <label style="border:2px solid var(--exp-blue); border-radius:10px; padding:20px; background:#fff; cursor:pointer; display:block;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <input type="radio" name="cabin_choice" value="Main Cabin" checked onchange="updateCabinPrice(0)">
+              <strong style="font-size:16px; color:var(--exp-blue); margin-left:6px;">Main Cabin (Economy)</strong>
+            </div>
+            <span style="font-size:18px; font-weight:800; color:var(--exp-text);">${{ "%.0f"|format(flight.price) }}</span>
+          </div>
+          <ul style="list-style:none; font-size:12px; color:var(--exp-subtext); line-height:1.8;">
+            <li><i class="fa-solid fa-check" style="color:var(--exp-green);"></i> Free standard seat selection</li>
+            <li><i class="fa-solid fa-check" style="color:var(--exp-green);"></i> 1 Free carry-on bag included</li>
+            <li><i class="fa-solid fa-check" style="color:var(--exp-green);"></i> Ticket changes allowed with no fee</li>
+          </ul>
+        </label>
+
+        <!-- First Class Upgrade -->
+        <label style="border:1px solid var(--exp-border); border-radius:10px; padding:20px; background:#fff; cursor:pointer; display:block;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <input type="radio" name="cabin_choice" value="First Class" onchange="updateCabinPrice(180)">
+              <strong style="font-size:16px; color:#4338ca; margin-left:6px;">First Class Upgrade</strong>
+            </div>
+            <span style="font-size:18px; font-weight:800; color:var(--exp-text);">${{ "%.0f"|format(flight.price + 180) }}</span>
+          </div>
+          <ul style="list-style:none; font-size:12px; color:var(--exp-subtext); line-height:1.8;">
+            <li><i class="fa-solid fa-star" style="color:#f59e0b;"></i> Premium recliner leather seating</li>
+            <li><i class="fa-solid fa-star" style="color:#f59e0b;"></i> 2 Free checked bags included</li>
+            <li><i class="fa-solid fa-star" style="color:#f59e0b;"></i> Complimentary meals &amp; premium beverages</li>
+          </ul>
+        </label>
+      </div>
+    </div>
+
+    <!-- IT-12: Travel Protection Insurance Addon Modal / Card -->
+    <div class="it-boundary it-color-amber" style="background:#fff; border:1px solid var(--exp-border); border-radius:12px; padding:20px; margin-bottom:28px;">
+      <div class="it-badge it-badge-amber">
+        <span class="it-badge-code">IT-12</span>
+        <span class="it-badge-name">Fill additional options</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3 style="font-size:16px; font-weight:800; color:var(--exp-text);"><i class="fa-solid fa-shield-halved" style="color:var(--exp-green);"></i> Comprehensive Flight Protection ($34.00)</h3>
+          <p style="font-size:13px; color:var(--exp-subtext); margin-top:4px;">
+            Reimbursement up to 100% of flight cost for trip cancellation, baggage delay, or medical emergencies.
+          </p>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:700; cursor:pointer;">
+          <input type="checkbox" id="insuranceCheck" onchange="updateInsurance(this.checked)" style="transform:scale(1.2);">
+          <span>Add Protection</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Continue to Checkout CTA -->
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--exp-border); border-radius:12px; padding:20px;">
+      <div>
+        <div style="font-size:12px; color:var(--exp-subtext);">Trip Total (1 Traveler)</div>
+        <div style="font-size:26px; font-weight:900; color:var(--exp-text);">$<span id="grandTotalDisplay">{{ "%.2f"|format(flight.price) }}</span></div>
+      </div>
+
+      <button type="button" class="btn-exp-select" onclick="proceedToCheckout()" style="padding:14px 32px; font-size:16px;">
+        Continue to checkout &rarr;
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    const baseFare = {{ flight.price }};
+    let upgradeCost = 0;
+    let insuranceCost = 0;
+
+    function updateCabinPrice(cost) {
+      upgradeCost = cost;
+      recalculate();
+    }
+    function updateInsurance(checked) {
+      insuranceCost = checked ? 34.00 : 0.00;
+      recalculate();
+    }
+    function recalculate() {
+      const total = baseFare + upgradeCost + insuranceCost;
+      document.getElementById('grandTotalDisplay').innerText = total.toFixed(2);
+    }
+
+    function proceedToCheckout() {
+      const cabin = document.querySelector('input[name="cabin_choice"]:checked').value;
+      const ins = document.getElementById('insuranceCheck').checked ? '1' : '0';
+      window.location.href = `/expedia/checkout?flight_id={{ flight.id }}&cabin=${encodeURIComponent(cabin)}&insurance=${ins}`;
+    }
+  </script>
+</body>
+</html>

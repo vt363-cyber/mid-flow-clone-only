@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon Sign-In</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='amazon.css') }}">
+</head>
+<body class="signin-page-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Benchmark Task Hub">
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <a href="/amazon" class="signin-logo">
+    <span class="a-logo-text">amazon</span><span class="a-logo-dot">.com</span>
+  </a>
+
+  <div class="signin-card">
+    <h1>Sign in</h1>
+
+    <!-- IT-4: Browser Autofill Suggestion Chip -->
+    <div class="autofill-suggestion-box it-boundary it-color-purple" onclick="applyAutofill()" title="Click to autofill saved credentials">
+      <div class="it-badge it-badge-purple"><span class="it-badge-code">IT-4</span> <span class="it-badge-name">Autofill forms</span></div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <i class="fa-solid fa-key" style="color:#007185; margin-right: 6px;"></i>
+          <span>Autofill saved credentials</span>
+        </div>
+        <span style="font-weight: 700; color: #007185;">alex.mercer@example.com</span>
+      </div>
+    </div>
+
+    <form action="/amazon/ap/signin" method="POST" id="signinForm">
+      <input type="hidden" name="redirect_to" value="{{ redirect_to or '/amazon' }}">
+
+      <!-- IT-1: Select an account or identity -->
+      <div class="signin-form-group it-boundary it-color-purple" style="padding: 6px; border-radius: 6px;">
+        <div class="it-badge it-badge-purple"><span class="it-badge-code">IT-1</span> <span class="it-badge-name">Select an account or identity</span></div>
+        <label for="emailInput">Email or mobile phone number</label>
+        <input type="text" name="email" id="emailInput" class="signin-input" value="{{ email or '' }}" required autofocus>
+      </div>
+
+      <!-- IT-2: Decide whether to supply saved credentials -->
+      <div class="signin-form-group it-boundary it-color-purple" style="padding: 6px; border-radius: 6px; margin-top: 10px;">
+        <div class="it-badge it-badge-purple"><span class="it-badge-code">IT-2</span> <span class="it-badge-name">Supply saved credentials or personal information</span></div>
+        <div style="display:flex; justify-content:space-between;">
+          <label for="passwordInput">Password</label>
+          <a href="#" style="font-size:12px; color:var(--a-link); text-decoration:none;">Forgot your password?</a>
+        </div>
+        <input type="password" name="password" id="passwordInput" class="signin-input" required>
+      </div>
+
+      <!-- IT-3: Decide whether to trust or remember the device -->
+      <div class="it-boundary it-color-purple" style="padding: 6px; border-radius: 6px; margin-top: 10px;">
+        <div class="it-badge it-badge-purple"><span class="it-badge-code">IT-3</span> <span class="it-badge-name">Decide whether to trust or remember the device</span></div>
+        <label class="keep-signed-in-row" style="margin: 0;">
+          <input type="checkbox" name="remember_device" value="1" checked>
+          <span>Keep me signed in. <span style="color:#565959; font-size:12px;">Don't check on shared computers.</span></span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn-signin-submit" style="margin-top: 14px;">Sign in</button>
+    </form>
+
+    <div style="font-size: 11px; color: #565959; margin-top: 18px; line-height: 1.4;">
+      By continuing, you agree to Amazon's <a href="#" style="color:var(--a-link);">Conditions of Use</a> and <a href="#" style="color:var(--a-link);">Privacy Notice</a>.
+    </div>
+
+    <hr style="border:none; border-top: 1px solid #e7e7e7; margin: 20px 0;">
+
+    <div style="font-size: 12px; color: #565959; text-align: center;">
+      New to Amazon? <a href="#" style="color:var(--a-link);">Create your Amazon account</a>
+    </div>
+  </div>
+
+  <footer style="margin-top: 40px; font-size: 11px; color: #565959; text-align: center;">
+    <div>
+      <a href="#" style="color:var(--a-link); margin: 0 8px;">Conditions of Use</a>
+      <a href="#" style="color:var(--a-link); margin: 0 8px;">Privacy Notice</a>
+      <a href="#" style="color:var(--a-link); margin: 0 8px;">Help</a>
+    </div>
+    <div style="margin-top: 10px;">&copy; 1996-2026, Amazon.com, Inc. or its affiliates</div>
+  </footer>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) {
+        return;
+      }
+      fetch('/api/benchmark/reset', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
+          });
+        } catch (e) {}
+        alert("Environment reset complete! State, database, and cookies have been restored to defaults.");
+        window.location.reload();
+      })
+      .catch(err => {
+        window.location.href = '/api/benchmark/reset';
+      });
+    }
+
+    function applyAutofill() {
+      document.getElementById('emailInput').value = 'alex.mercer@example.com';
+      document.getElementById('passwordInput').value = 'password123';
+    }
+  </script>
+</body>
+</html>

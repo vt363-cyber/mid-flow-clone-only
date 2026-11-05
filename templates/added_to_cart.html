@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %}Amazon.com Shopping Cart{% endblock %}
+
+{% block content %}
+<div class="a-added-container">
+  <!-- Left Side: Added to Cart Notice -->
+  <div class="a-added-box">
+    <div class="added-header">
+      <i class="fa fa-circle-check check-icon"></i>
+      <h2>Added to Cart</h2>
+    </div>
+
+    <div class="added-item-row">
+      <img src="{{ product.image_url }}" alt="{{ product.title }}">
+      <div class="added-item-meta">
+        <h3>{{ product.title }}</h3>
+        <p class="added-qty">Quantity: {{ quantity }}</p>
+        <p class="added-price">${{ "%.2f"|format(product.price) }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Subtotal & Checkout Action Box -->
+  <div class="a-added-summary">
+    <div class="subtotal-line">
+      Cart subtotal ({{ cart_count }} items): <strong>${{ "%.2f"|format(cart_subtotal) }}</strong>
+    </div>
+
+    <div class="added-actions">
+      <!-- Proceed to checkout -->
+      <a href="/amazon/gp/buy/spc/handlers/display.html" class="a-btn-yellow a-btn-checkout-now">
+        Proceed to checkout ({{ cart_count }} items)
+      </a>
+
+      <!-- Go to cart -->
+      <a href="/amazon/gp/cart/view.html" class="a-btn-white a-btn-go-cart">
+        Go to Cart
+      </a>
+    </div>
+
+    <div class="added-prime-note">
+      <span class="prime-tag">prime</span> Your order qualifies for FREE Two-Day Shipping!
+    </div>
+  </div>
+</div>
+{% endblock %}

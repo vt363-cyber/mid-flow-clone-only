@@ -1,0 +1,199 @@
+:root {
+  --dd-red: #eb1700;
+  --dd-red-hover: #c41200;
+  --dd-bg: #f7f7f7;
+  --dd-card-bg: #ffffff;
+  --dd-border: #e4e4e4;
+  --dd-text: #191919;
+  --dd-subtext: #606060;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body.dd-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--dd-bg);
+  color: var(--dd-text);
+  min-height: 100vh;
+}
+
+/* Floating Benchmark Task Hub Bar */
+.benchmark-hub-bar {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  color: #0f172a;
+}
+.hub-bar-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-hub-reset {
+  background: #ef4444;
+  color: #ffffff;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.it-bounding-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+.it-bounding-toggle input { display: none; }
+.it-toggle-slider {
+  width: 32px;
+  height: 18px;
+  background-color: #cbd5e1;
+  border-radius: 12px;
+  position: relative;
+  display: inline-block;
+  transition: background-color 0.2s;
+}
+.it-toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.it-bounding-toggle input:checked + .it-toggle-slider { background-color: #10b981; }
+.it-bounding-toggle input:checked + .it-toggle-slider::after { transform: translateX(14px); }
+
+/* Bounding & Badges */
+.it-boundary { position: relative; transition: all 0.2s ease-in-out; }
+body.show-it-bounding-boxes .it-boundary {
+  outline: 2px dashed var(--it-outline, #7c3aed) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 4px var(--it-halo, rgba(124, 58, 237, 0.15)) !important;
+  border-radius: 6px;
+}
+.it-color-teal { --it-outline: #0d9488; --it-halo: rgba(13, 148, 136, 0.2); }
+.it-color-purple { --it-outline: #7c3aed; --it-halo: rgba(124, 58, 237, 0.2); }
+.it-color-rose { --it-outline: #e11d48; --it-halo: rgba(225, 29, 72, 0.2); }
+.it-color-amber { --it-outline: #d97706; --it-halo: rgba(217, 119, 6, 0.2); }
+.it-color-blue { --it-outline: #2563eb; --it-halo: rgba(37, 99, 235, 0.2); }
+
+body.show-it-bounding-boxes .dd-modal-box.it-boundary {
+  background: #ffffff !important;
+  outline: 3px dashed var(--it-outline, #7c3aed) !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 6px var(--it-halo, rgba(124, 58, 237, 0.2)), 0 20px 45px rgba(0,0,0,0.3) !important;
+}
+
+body.show-it-bounding-boxes .dd-cookie-banner.it-boundary {
+  background: #191919 !important;
+  color: #ffffff !important;
+  outline: 3px dashed var(--it-outline, #0d9488) !important;
+  outline-offset: -3px !important;
+}
+
+.it-badge {
+  display: none;
+  position: absolute;
+  top: -12px;
+  left: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  line-height: 1.25;
+}
+body.show-it-bounding-boxes .it-boundary > .it-badge { display: inline-flex; align-items: center; gap: 4px; }
+.it-badge-teal { background: #0f766e; color: #fff; }
+.it-badge-purple { background: #7e22ce; color: #fff; }
+.it-badge-rose { background: #be123c; color: #fff; }
+.it-badge-amber { background: #b45309; color: #fff; }
+.it-badge-blue { background: #1d4ed8; color: #fff; }
+.it-badge-code { background: rgba(0,0,0,0.25); padding: 1px 4px; border-radius: 3px; font-weight: 800; }
+
+/* DoorDash Top Header */
+.dd-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--dd-border);
+  padding: 14px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dd-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--dd-red);
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+.dd-container {
+  max-width: 1040px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+/* Modals */
+.dd-modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+}
+.dd-modal-backdrop.active { display: flex; }
+.dd-modal-box {
+  background: #ffffff !important;
+  color: #191919 !important;
+  border-radius: 12px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.35);
+}
+
+/* Cookie Banner (IT-6) */
+.dd-cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #191919 !important;
+  color: #ffffff !important;
+  padding: 16px 28px;
+  z-index: 999999;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+}

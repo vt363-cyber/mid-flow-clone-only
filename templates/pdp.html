@@ -1,0 +1,195 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ product.title }} : Amazon.com{% endblock %}
+
+{% block content %}
+<div class="a-pdp-layout">
+  <!-- Left Column: Gallery -->
+  <div class="a-pdp-gallery-col">
+    <div class="main-img-holder">
+      <img id="mainPdpImg" src="{{ product.image_url }}" alt="{{ product.title }}">
+    </div>
+  </div>
+
+  <!-- Center Column: Details & Variants -->
+  <div class="a-pdp-center-col">
+    {% if product.best_seller_badge %}
+      <div class="a-badge-bestseller">{{ product.best_seller_badge }}</div>
+    {% endif %}
+    <h1 class="pdp-title">{{ product.title }}</h1>
+    <div class="pdp-brand-link">Visit the {{ product.brand }} Store</div>
+
+    <div class="pdp-ratings-row">
+      <span class="stars">★★★★★</span>
+      <span class="rating-val">{{ product.rating }}</span>
+      <span class="rating-pipe">|</span>
+      <span class="rating-link">{{ "{:,}".format(product.rating_count) }} ratings</span>
+      <span class="rating-pipe">|</span>
+      <span class="answered-link">152 answered questions</span>
+    </div>
+
+    <hr class="pdp-divider">
+
+    <div class="pdp-price-box">
+      <div class="deal-badge-small">Limited time deal</div>
+      <div class="price-display">
+        <span class="price-symbol">$</span>
+        <span class="price-whole">{{ "%.0f"|format(product.price) }}</span>
+        <span class="price-cents">99</span>
+      </div>
+      {% if product.list_price > product.price %}
+        <div class="list-price-text">Typical price: <strike>${{ "%.2f"|format(product.list_price) }}</strike></div>
+      {% endif %}
+      <div class="returns-policy">FREE Returns</div>
+    </div>
+
+    <!-- Variant Matrix -->
+    {% if variants %}
+      <div class="pdp-variants-section">
+        <div class="variant-label">Color: <strong id="selectedColorText">{{ variants[0].color }}</strong></div>
+        <div class="variant-swatches">
+          {% for v in variants %}
+            <div class="variant-swatch {% if loop.first %}active{% endif %}"
+                 onclick="selectVariant('{{ v.id }}', '{{ v.color }}', '{{ v.price }}', '{{ v.image_url }}', this)">
+              <span>{{ v.color }}</span>
+              <small>${{ "%.2f"|format(v.price) }}</small>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <hr class="pdp-divider">
+
+    <div class="pdp-about-item">
+      <h3>About this item</h3>
+      <ul>
+        <li>{{ product.description }}</li>
+        <li>Premium build quality tested under rigorous consumer standards.</li>
+        <li>Compatible with all modern operating systems and platforms.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Right Column: The Famous Amazon "Buy Box" -->
+  <div class="a-pdp-buybox-col">
+    <div class="a-buybox-card">
+      <div class="bb-price">${{ "%.2f"|format(product.price) }}</div>
+      <div class="bb-prime">
+        <span class="prime-tag">prime</span>
+        <span>FREE Delivery <strong>Thursday, Nov 5</strong></span>
+      </div>
+      <div class="bb-fast-delivery">
+        Or fastest delivery <strong>Tomorrow, Nov 4</strong>. Order within <span class="highlight-green">4 hrs 12 mins</span>.
+      </div>
+      <div class="bb-location">
+        <i class="fa fa-location-dot"></i> Deliver to Alex - Springfield 97477
+      </div>
+
+      <div class="bb-stock">In Stock</div>
+
+      <!-- Add to Cart Form -->
+      <form id="buyBoxForm" action="/amazon/cart/add" method="POST">
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        <input type="hidden" name="variant_id" id="formVariantId" value="{% if variants %}{{ variants[0].id }}{% else %}none{% endif %}">
+        <input type="hidden" name="add_protection" id="formAddProtection" value="0">
+        <input type="hidden" name="is_buy_now" id="formIsBuyNow" value="0">
+
+        <div class="bb-qty-row">
+          <label>Quantity:</label>
+          <select name="quantity" class="bb-qty-select">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+
+        <!-- Incidental Button 1: Add to Cart (Triggers Protection Interstitial) -->
+        <button type="button" class="a-btn-buybox a-btn-addtocart" onclick="triggerProtectionModal()">
+          Add to Cart
+        </button>
+
+        <!-- Incidental Button 2: 1-Click Buy Now (Direct to SPC Checkout) -->
+        <button type="button" class="a-btn-buybox a-btn-buynow" onclick="triggerBuyNow()">
+          Buy Now
+        </button>
+      </form>
+
+      <div class="bb-meta-table">
+        <div class="bb-meta-row">
+          <span class="meta-label">Ships from</span>
+          <span class="meta-val">{{ product.ships_from }}</span>
+        </div>
+        <div class="bb-meta-row">
+          <span class="meta-label">Sold by</span>
+          <span class="meta-val">{{ product.sold_by }}</span>
+        </div>
+        <div class="bb-meta-row">
+          <span class="meta-label">Returns</span>
+          <span class="meta-val">30-day refund/replacement</span>
+        </div>
+        <div class="bb-meta-row">
+          <span class="meta-label">Payment</span>
+          <span class="meta-val">Secure transaction</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incidental Task Modal: Amazon Warranty / Protection Plan Interstitial (IT-12 Dialog) -->
+<div class="a-modal-backdrop" id="protectionModal">
+  <div class="a-protection-modal it-boundary it-color-green">
+    <div class="it-badge it-badge-green"><span class="it-badge-code">IT-12</span> <span class="it-badge-name">Fill additional options</span></div>
+    <div class="modal-header">
+      <i class="fa fa-shield-halved shield-icon"></i>
+      <h3>Add a Protection Plan to your order</h3>
+    </div>
+    <div class="modal-body">
+      <div class="plan-card">
+        <div class="plan-info">
+          <h4>2-Year Extended Protection Plan for ${{ "%.2f"|format(product.protection_plan_price) }}</h4>
+          <p>Covers accidental drops, spills, and electrical failures with 0 deductible and 24/7 priority support.</p>
+        </div>
+        <div class="plan-price">${{ "%.2f"|format(product.protection_plan_price) }}</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="a-btn-modal-add" onclick="submitWithProtection(1)">
+        Add Plan & Continue
+      </button>
+      <button class="a-btn-modal-skip" onclick="submitWithProtection(0)">
+        No thanks, proceed to Cart
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function selectVariant(id, color, price, img, el) {
+    document.getElementById('formVariantId').value = id;
+    document.getElementById('selectedColorText').innerText = color;
+    document.querySelectorAll('.variant-swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    if (img) document.getElementById('mainPdpImg').src = img;
+  }
+
+  function triggerProtectionModal() {
+    document.getElementById('protectionModal').classList.add('active');
+  }
+
+  function submitWithProtection(withPlan) {
+    document.getElementById('formAddProtection').value = withPlan;
+    document.getElementById('formIsBuyNow').value = "0";
+    document.getElementById('buyBoxForm').submit();
+  }
+
+  function triggerBuyNow() {
+    document.getElementById('formAddProtection').value = "0";
+    document.getElementById('formIsBuyNow').value = "1";
+    document.getElementById('buyBoxForm').submit();
+  }
+</script>
+{% endblock %}

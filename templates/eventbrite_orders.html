@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Event Tickets | Eventbrite</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='eventbrite.css') }}">
+</head>
+<body class="eb-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <header class="eb-header">
+    <a href="/eventbrite" class="eb-logo">
+      <span>eventbrite</span>
+    </a>
+    <div class="eb-nav-links">
+      <a href="/eventbrite" class="eb-nav-link">Find Events</a>
+      <a href="/eventbrite/orders" class="eb-nav-link" style="color:var(--eb-orange);"><i class="fa-solid fa-ticket"></i> My Tickets</a>
+    </div>
+  </header>
+
+  <div class="eb-hero-container" style="max-width:800px; margin-top:32px;">
+    <h1 style="font-size:26px; font-weight:800; color:var(--eb-navy); margin-bottom:20px;">
+      <i class="fa-solid fa-ticket" style="color:var(--eb-orange);"></i> Orders &amp; Tickets
+    </h1>
+
+    {% if orders %}
+      {% for order in orders %}
+        <div class="eb-event-card" style="margin-bottom:20px; padding:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+              <span style="font-size:12px; font-weight:700; color:var(--eb-orange); background:var(--eb-orange-light); padding:3px 8px; border-radius:4px;">
+                ORDER #{{ order.order_number }}
+              </span>
+              <h2 style="font-size:18px; font-weight:800; color:var(--eb-navy); margin-top:6px;">{{ order.event_title }}</h2>
+              <p style="font-size:13px; color:var(--eb-subtext);">{{ order.event_date }} &bull; {{ order.venue_name }}</p>
+            </div>
+            <span style="font-weight:700; font-size:13px; padding:4px 10px; border-radius:6px; {% if order.status == 'Cancelled' %}background:#fee2e2; color:#b91c1c;{% else %}background:#dcfce7; color:#15803d;{% endif %}">
+              {{ order.status }}
+            </span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--eb-border); padding-top:12px; margin-top:12px; font-size:13px;">
+            <div>
+              <strong>{{ order.ticket_tier }}</strong> &times; {{ order.quantity }}
+              <span style="color:var(--eb-subtext); margin-left:8px;">Total Paid: ${{ "%.2f"|format(order.total_amount) }}</span>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+              <a href="/eventbrite/confirmation/{{ order.order_number }}" class="btn-cookie-decline" style="color:var(--eb-navy); font-size:12px; padding:6px 12px; text-decoration:none;">
+                <i class="fa-solid fa-qrcode"></i> View Pass
+              </a>
+              {% if order.status != 'Cancelled' %}
+                <form action="/eventbrite/orders/cancel" method="POST" style="display:inline;">
+                  <input type="hidden" name="order_id" value="{{ order.id }}">
+                  <button type="submit" class="btn-cookie-decline" onclick="return confirm('Cancel registration and refund ticket?')" style="color:#b91c1c; border-color:#fca5a5; font-size:12px; padding:6px 12px;">
+                    Cancel Ticket
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center; padding:60px 20px; background:#fff; border:1px solid var(--eb-border); border-radius:12px;">
+        <i class="fa-solid fa-ticket-simple" style="font-size:48px; color:#9ca3af; margin-bottom:14px;"></i>
+        <h3 style="font-size:18px; color:var(--eb-navy);">No tickets booked yet</h3>
+        <p style="color:var(--eb-subtext); margin:8px 0 20px;">Explore our summit schedule and book your conference pass today.</p>
+        <a href="/eventbrite" class="btn-eb-primary" style="width:auto; padding:10px 24px; text-decoration:none;">Find Events</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+  </script>
+</body>
+</html>

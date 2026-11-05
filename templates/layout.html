@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Amazon.com: Online Shopping for Electronics, Apparel, Computers, Books & More{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='amazon.css') }}">
+</head>
+<body>
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Benchmark Task Hub">
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Dark Nav Bar -->
+  <header class="a-header">
+    <div class="a-nav-main">
+      <!-- Amazon Logo -->
+      <a href="/amazon" class="a-logo-link" title="Amazon Home">
+        <span class="a-logo-text">amazon</span><span class="a-logo-dot">.com</span>
+        <span class="a-prime-tag">prime</span>
+      </a>
+
+      <!-- Delivery Location (Trigger for IT-5) -->
+      <div class="a-nav-location" onclick="openLocationModal()" style="cursor:pointer;" title="Click to change location">
+        <div style="display:flex; align-items:center; gap:5px;">
+          <i class="fa-solid fa-location-dot location-icon"></i>
+          <div class="location-text">
+            <span class="loc-label">Deliver to {{ selected_address.full_name.split()[0] if selected_address else 'Alex' }}</span>
+            <span class="loc-city" id="navCityZip">{{ selected_address.city if selected_address else 'Springfield' }} {{ selected_address.zip_code if selected_address else '97477' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="a-nav-search">
+        <form action="/amazon/s" method="GET" class="a-search-form">
+          <select name="i" class="a-search-select">
+            <option value="all">All</option>
+            <option value="Electronics" {% if category == 'Electronics' %}selected{% endif %}>Electronics</option>
+            <option value="Amazon Devices" {% if category == 'Amazon Devices' %}selected{% endif %}>Amazon Devices</option>
+            <option value="Fashion" {% if category == 'Fashion' %}selected{% endif %}>Fashion</option>
+          </select>
+          <input type="text" name="k" class="a-search-input" placeholder="Search Amazon" value="{{ query or '' }}">
+          <button type="submit" class="a-search-submit"><i class="fa fa-search"></i></button>
+        </form>
+      </div>
+
+      <!-- Language / Region -->
+      <div class="a-nav-lang">
+        <span class="flag-icon">🇺🇸</span>
+        <span class="lang-code">EN</span>
+      </div>
+
+      <!-- Account & Lists (IT-1, IT-2, IT-3, IT-4) -->
+      <a href="/amazon/ap/signin" class="a-nav-account" style="text-decoration: none; color: inherit;">
+        <span class="nav-line-1">Hello, {% if session.get('logged_in_name') %}{{ session.get('logged_in_name') }}{% else %}Sign in{% endif %}</span>
+        <span class="nav-line-2">Account & Lists <i class="fa fa-caret-down"></i></span>
+      </a>
+
+      <!-- Returns & Orders -->
+      <a href="/amazon/gp/your-account/order-history" class="a-nav-orders">
+        <span class="nav-line-1">Returns</span>
+        <span class="nav-line-2">& Orders</span>
+      </a>
+
+      <!-- Cart Icon -->
+      <a href="/amazon/gp/cart/view.html" class="a-nav-cart">
+        <div class="cart-icon-wrap">
+          <span class="a-cart-count">{{ cart_count }}</span>
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+        <span class="cart-label">Cart</span>
+      </a>
+    </div>
+
+    <!-- Secondary Sub-nav Bar -->
+    <div class="a-subnav">
+      <div class="a-subnav-container">
+        <a href="/amazon" class="subnav-item all-menu"><i class="fa fa-bars"></i> All</a>
+        <a href="/amazon/s?k=deals" class="subnav-item">Today's Deals</a>
+        <a href="/amazon/s?i=Amazon+Devices" class="subnav-item">Amazon Basics</a>
+        <a href="/amazon/s?prime=1" class="subnav-item">Prime Video</a>
+        <a href="/amazon/s?i=Electronics" class="subnav-item">Electronics</a>
+        <a href="/amazon/s?i=Fashion" class="subnav-item">Fashion</a>
+        <a href="/amazon" class="subnav-item">Customer Service</a>
+        <a href="/amazon" class="subnav-item">Registry</a>
+        <a href="/amazon" class="subnav-item">Gift Cards</a>
+        <a href="/amazon" class="subnav-item">Sell</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Flash Alerts -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="a-flash-container">
+        {% for cat, msg in messages %}
+          <div class="a-alert a-alert-{{ cat }}">
+            <i class="fa fa-info-circle"></i> {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Page Body -->
+  <main class="a-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Amazon Footer -->
+  <footer class="a-footer">
+    <div class="a-back-to-top" onclick="window.scrollTo({top:0, behavior:'smooth'})">Back to top</div>
+    <div class="a-footer-links">
+      <div>
+        <h4>Get to Know Us</h4>
+        <ul>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">About Amazon</a></li>
+          <li><a href="#">Investor Relations</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Make Money with Us</h4>
+        <ul>
+          <li><a href="#">Sell products on Amazon</a></li>
+          <li><a href="#">Sell on Amazon Business</a></li>
+          <li><a href="#">Become an Affiliate</a></li>
+          <li><a href="#">Advertise Your Products</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Amazon Payment Products</h4>
+        <ul>
+          <li><a href="#">Amazon Business Card</a></li>
+          <li><a href="#">Shop with Points</a></li>
+          <li><a href="#">Reload Your Balance</a></li>
+          <li><a href="#">Amazon Currency Converter</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Let Us Help You</h4>
+        <ul>
+          <li><a href="#">Amazon and COVID-19</a></li>
+          <li><a href="#">Your Account</a></li>
+          <li><a href="/amazon/gp/your-account/order-history">Your Orders</a></li>
+          <li><a href="#">Shipping Rates & Policies</a></li>
+          <li><a href="#">Returns & Replacements</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="a-footer-bottom">
+      <p>&copy; 1996-2026, Amazon.com, Inc. or its affiliates. End-to-End Simulation Environment.</p>
+    </div>
+  </footer>
+
+  <!-- Cookie & Tracking Consent Banner (IT-6) -->
+  <div class="a-cookie-banner it-boundary it-color-teal" id="cookieBanner" style="display:none;">
+    <div class="it-badge it-badge-teal"><span class="it-badge-code">IT-6</span> <span class="it-badge-name">Resolve cookie and tracking-consent choices</span></div>
+    <div class="cookie-text">
+      <strong>Cookie &amp; Privacy Choices:</strong> We use cookies and similar technologies to provide our services, understand customer usage for improvements, and show relevant recommendations and ads. You can accept all cookies or choose essential cookies only.
+    </div>
+    <div class="cookie-actions">
+      <button type="button" class="btn-cookie-decline" onclick="dismissCookieBanner(false)">Essential cookies only</button>
+      <button type="button" class="btn-cookie-accept" onclick="dismissCookieBanner(true)">Accept all cookies</button>
+    </div>
+  </div>
+
+  <!-- Location Access / Geolocation Modal (IT-5 Dialog) -->
+  <div class="a-checkout-modal-backdrop" id="locationModal">
+    <div class="a-checkout-modal-box location-modal-box it-boundary it-color-teal">
+      <div class="it-badge it-badge-teal"><span class="it-badge-code">IT-5</span> <span class="it-badge-name">Resolve request for browser permissions</span></div>
+      <div class="a-checkout-modal-header">
+        <h3><i class="fa-solid fa-location-dot" style="color:#007185;"></i> Choose your delivery location</h3>
+        <button type="button" class="btn-close-modal" onclick="closeLocationModal()">&times;</button>
+      </div>
+      <div class="location-modal-body">
+        <p style="margin-bottom: 14px; font-size:13px; color:#333;">
+          Delivery options and speeds may vary based on your location. Select from your saved addresses, use browser location, or enter a US ZIP code.
+        </p>
+
+        <!-- Saved Addresses Dropdown -->
+        <div style="margin-bottom: 16px;">
+          <label for="locationAddressSelect" style="display:block; font-weight:700; margin-bottom:6px; font-size:13px; color:#0f1111;">
+            <i class="fa-solid fa-address-book" style="color:#007185;"></i> Select from saved addresses:
+          </label>
+          <select id="locationAddressSelect" class="location-address-select" onchange="changeNavAddress(this.value)">
+            {% for addr in saved_addresses %}
+              <option value="{{ addr.id }}" {% if selected_address and selected_address.id == addr.id %}selected{% endif %}>
+                {% if addr.is_hub_locker %}[Hub Locker] {% endif %}{{ addr.full_name }} — {{ addr.address_line1 }}, {{ addr.city }}, {{ addr.state }} {{ addr.zip_code }}{% if addr.is_default %} (Default){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="text-align: center; color: #767676; margin: 12px 0; font-size: 12px; position: relative;">
+          <span style="background: #fff; padding: 0 8px;">or</span>
+        </div>
+
+        <!-- Browser Geolocation Trigger (IT-5) -->
+        <button type="button" class="btn-use-location" onclick="requestBrowserLocation()">
+          <i class="fa-solid fa-crosshairs"></i> Use my current browser location
+        </button>
+
+        <div style="text-align: center; color: #767676; margin: 12px 0; font-size: 12px; position: relative;">
+          <span style="background: #fff; padding: 0 8px;">or enter a US ZIP code</span>
+        </div>
+
+        <div class="zip-input-row">
+          <input type="text" id="manualZipInput" class="signin-input" placeholder="e.g. 97477" value="97477" maxlength="5">
+          <button type="button" class="btn-cookie-accept" style="border-radius: 4px;" onclick="applyManualZip()">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global IT Bounding Box Toggle Logic
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false'; // default ON
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    // Global Reset Benchmark Environment (IT State, Orders, Cart, Cookies)
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) {
+        return;
+      }
+      fetch('/api/benchmark/reset', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
+          });
+        } catch (e) {}
+        alert("Environment reset complete! State, database, and cookies have been restored to defaults.");
+        window.location.reload();
+      })
+      .catch(err => {
+        window.location.href = '/api/benchmark/reset';
+      });
+    }
+
+    // IT-6: Check if cookie consent already given
+    if (!localStorage.getItem('amazon_cookie_consent')) {
+      document.getElementById('cookieBanner').style.display = 'flex';
+    }
+
+    function dismissCookieBanner(accepted) {
+      localStorage.setItem('amazon_cookie_consent', accepted ? 'all' : 'essential');
+      document.getElementById('cookieBanner').style.display = 'none';
+    }
+
+    // IT-5: Location Permission Modal
+    function openLocationModal() {
+      document.getElementById('locationModal').classList.add('active');
+    }
+    function closeLocationModal() {
+      document.getElementById('locationModal').classList.remove('active');
+    }
+
+    function changeNavAddress(addrId) {
+      fetch('/amazon/location/set_address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'address_id=' + encodeURIComponent(addrId)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const cityEl = document.getElementById('navCityZip');
+          if (cityEl) {
+            cityEl.innerText = data.city + ' ' + data.zip_code;
+          }
+          closeLocationModal();
+          if (window.location.pathname.includes('/cart') || window.location.pathname.includes('/buy/')) {
+            window.location.reload();
+          }
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        closeLocationModal();
+      });
+    }
+
+    function requestBrowserLocation() {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            alert('Location permission granted! Delivering to Springfield, OR (Lat: ' + pos.coords.latitude.toFixed(2) + ', Long: ' + pos.coords.longitude.toFixed(2) + ')');
+            document.getElementById('navCityZip').innerText = 'Springfield 97477';
+            closeLocationModal();
+          },
+          (err) => {
+            alert('Location access resolved/denied: using Springfield 97477.');
+            closeLocationModal();
+          }
+        );
+      } else {
+        closeLocationModal();
+      }
+    }
+
+    function applyManualZip() {
+      const z = document.getElementById('manualZipInput').value.trim();
+      if (z) {
+        document.getElementById('navCityZip').innerText = 'ZIP ' + z;
+        closeLocationModal();
+      }
+    }
+  </script>
+
+</body>
+</html>

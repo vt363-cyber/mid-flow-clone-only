@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ event.title }} | Eventbrite Tickets</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='eventbrite.css') }}">
+</head>
+<body class="eb-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Eventbrite Top Navbar -->
+  <header class="eb-header">
+    <div style="display:flex; align-items:center;">
+      <a href="/eventbrite" class="eb-logo">
+        <span>eventbrite</span>
+      </a>
+      <span class="eb-logo-sub">San Francisco, CA</span>
+    </div>
+    <div class="eb-nav-links">
+      <a href="/eventbrite" class="eb-nav-link">Find Events</a>
+      <a href="/eventbrite/orders" class="eb-nav-link"><i class="fa-solid fa-ticket"></i> My Tickets</a>
+      <div style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:13px; color:var(--eb-navy);">
+        <i class="fa-solid fa-circle-user" style="font-size:20px; color:#6f7287;"></i>
+        <span>Alex Mercer</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Event Banner -->
+  <div class="eb-hero-container">
+    <div class="eb-event-card">
+      <div class="eb-hero-image-wrap">
+        <img src="{{ event.image_url }}" alt="{{ event.title }}" class="eb-hero-image">
+        <span class="eb-event-badge-tag"><i class="fa-solid fa-star"></i> Featured Tech Summit</span>
+      </div>
+
+      <div class="eb-event-meta-grid">
+        <div>
+          <div class="eb-date-highlight">{{ event.date_str }} &bull; {{ event.time_str }}</div>
+          <h1 class="eb-event-title">{{ event.title }}</h1>
+          <p class="eb-event-subtitle">{{ event.subtitle }}</p>
+
+          <div class="eb-organizer-pill">
+            <i class="fa-solid fa-building" style="color:var(--eb-orange);"></i>
+            <span>Organized by <strong>{{ event.organizer }}</strong></span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:12px; color:var(--eb-subtext); font-size:13px;">
+            <div><i class="fa-solid fa-location-dot" style="color:#d1410c;"></i> {{ event.venue_name }}, {{ event.venue_address }}, {{ event.city }}, {{ event.state }}</div>
+            <div>&bull;</div>
+            <div><i class="fa-solid fa-users"></i> 2,500+ Attendees</div>
+          </div>
+        </div>
+
+        <!-- Sidebar / Ticket Trigger Box -->
+        <div class="eb-tickets-sidebar">
+          <div>
+            <div class="eb-price-range">From ${{ "%.2f"|format(tickets[0].price) if tickets else '149.00' }}</div>
+            <div class="eb-price-sub">Sales end on {{ event.date_str }}</div>
+          </div>
+          <!-- Trigger for Ticket Selection Modal (No boundary on trigger) -->
+          <button type="button" class="btn-eb-primary" id="btnGetTickets" onclick="openTicketsModal()">
+            <i class="fa-solid fa-ticket"></i> Get Tickets
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Event Info & Agenda -->
+  <div class="eb-details-section">
+    <div>
+      <div class="eb-content-block">
+        <h2 class="eb-section-heading">About this event</h2>
+        <p style="margin-bottom:14px; font-size:15px; color:#4b4d63; line-height:1.7;">
+          {{ event.description }}
+        </p>
+        <p style="font-size:14px; color:#4b4d63; line-height:1.7;">
+          Join leaders from across artificial intelligence, autonomous software engineering, and large-scale agent orchestration. Featuring live keynotes, hands-on architectural design workshops, and industry networking.
+        </p>
+      </div>
+
+      <div class="eb-content-block">
+        <h2 class="eb-section-heading">Conference Schedule</h2>
+        <div style="border-left:3px solid var(--eb-orange); padding-left:16px; margin-bottom:12px;">
+          <strong style="color:var(--eb-navy);">09:00 AM – 10:30 AM</strong>: Opening Keynote: Foundations of Multi-Agent Problem Solving
+        </div>
+        <div style="border-left:3px solid var(--eb-blue); padding-left:16px; margin-bottom:12px;">
+          <strong style="color:var(--eb-navy);">11:00 AM – 01:00 PM</strong>: Breakout Technical Masterclasses &amp; Live Evaluation Labs
+        </div>
+        <div style="border-left:3px solid var(--eb-success); padding-left:16px;">
+          <strong style="color:var(--eb-navy);">02:00 PM – 05:30 PM</strong>: Enterprise Agent Deployments, Security, &amp; Networking Reception
+        </div>
+      </div>
+    </div>
+
+    <!-- Location & Venue Details -->
+    <div>
+      <div class="eb-content-block" style="background:#fff; border:1px solid var(--eb-border); border-radius:10px; padding:20px;">
+        <h3 style="font-size:16px; font-weight:800; color:var(--eb-navy); margin-bottom:10px;"><i class="fa-solid fa-map-pin" style="color:var(--eb-orange);"></i> Location</h3>
+        <p style="font-weight:700; color:var(--eb-navy);">{{ event.venue_name }}</p>
+        <p style="color:var(--eb-subtext); font-size:13px; margin-bottom:12px;">{{ event.venue_address }}<br>{{ event.city }}, {{ event.state }} {{ event.zip_code }}</p>
+        <div style="background:#eef2f6; border-radius:8px; height:120px; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:12px;">
+          <i class="fa-solid fa-map-location-dot" style="font-size:24px; margin-right:8px; color:#3b82f6;"></i> Interactive Map Available
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticket Selection Modal (IT-12: Promo Code / Additional Options) -->
+  <div class="eb-modal-backdrop" id="ticketsModal">
+    <div class="eb-modal-box it-boundary it-color-amber">
+      <div class="it-badge it-badge-amber">
+        <span class="it-badge-code">IT-12</span>
+        <span class="it-badge-name">Fill additional options</span>
+      </div>
+
+      <div class="eb-modal-header">
+        <h3 style="font-size:18px; font-weight:800; color:var(--eb-navy);">Select Tickets</h3>
+        <button type="button" onclick="closeTicketsModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+      </div>
+
+      <form action="/eventbrite/checkout" method="GET" id="ticketSelectionForm">
+        <input type="hidden" name="event_id" value="{{ event.id }}">
+
+        <!-- Promo Code Input (IT-12) -->
+        <div style="margin-bottom:18px; background:#fff7ed; border:1px solid #fed7aa; padding:12px; border-radius:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="promoCodeInput" style="font-weight:700; font-size:12px; color:#9a3412;">Have a Promo Code?</label>
+            <span style="font-size:11px; color:#ea580c;">Try <strong>SUMMIT20</strong> for 20% off</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" name="promo_code" id="promoCodeInput" placeholder="Enter promo code" class="eb-input" style="text-transform:uppercase;">
+            <button type="button" class="btn-cookie-accept" onclick="validatePromoCode()" style="white-space:nowrap;">Apply</button>
+          </div>
+          <div id="promoNotice" style="display:none; font-size:12px; margin-top:6px; font-weight:600;"></div>
+        </div>
+
+        <!-- Ticket Tiers List -->
+        <div style="margin-bottom:20px;">
+          {% for ticket in tickets %}
+            <label class="eb-ticket-row" id="tier-box-{{ ticket.id }}">
+              <div style="display:flex; align-items:flex-start; gap:12px;">
+                <input type="radio" name="ticket_id" value="{{ ticket.id }}" {% if loop.first %}checked{% endif %} style="margin-top:4px;">
+                <div class="eb-ticket-info">
+                  <strong>{{ ticket.tier_name }}</strong>
+                  <p>{{ ticket.description }}</p>
+                  <div class="eb-ticket-price">${{ "%.2f"|format(ticket.price) }}</div>
+                </div>
+              </div>
+            </label>
+          {% endfor %}
+        </div>
+
+        <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+          <label style="font-weight:700; font-size:14px; color:var(--eb-navy);">Quantity:</label>
+          <select name="quantity" class="eb-select" style="width:100px;">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-eb-primary" style="padding:12px;">
+          Proceed to Checkout &rarr;
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cookie Consent Banner (IT-6) -->
+  <div class="eb-cookie-banner it-boundary it-color-teal" id="cookieBanner" style="display:none;">
+    <div class="it-badge it-badge-teal">
+      <span class="it-badge-code">IT-6</span>
+      <span class="it-badge-name">Resolve cookie and tracking-consent choices</span>
+    </div>
+    <div class="eb-cookie-text">
+      <strong>Eventbrite Cookie &amp; Privacy Preferences:</strong> We use cookies to enable secure ticket purchasing, analyze audience reach, and personalize event recommendations.
+    </div>
+    <div class="eb-cookie-actions">
+      <button type="button" class="btn-cookie-decline" onclick="dismissCookieBanner(false)">Essential only</button>
+      <button type="button" class="btn-cookie-accept" onclick="dismissCookieBanner(true)">Accept all cookies</button>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    // Reset Benchmark Environment
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    // IT-6 Cookie banner
+    if (!localStorage.getItem('eb_cookie_consent')) {
+      document.getElementById('cookieBanner').style.display = 'flex';
+    }
+    function dismissCookieBanner(all) {
+      localStorage.setItem('eb_cookie_consent', all ? 'all' : 'essential');
+      document.getElementById('cookieBanner').style.display = 'none';
+    }
+
+    // Modals
+    function openTicketsModal() {
+      document.getElementById('ticketsModal').classList.add('active');
+    }
+    function closeTicketsModal() {
+      document.getElementById('ticketsModal').classList.remove('active');
+    }
+
+    // Promo code validation (IT-12)
+    function validatePromoCode() {
+      const code = document.getElementById('promoCodeInput').value.trim().toUpperCase();
+      const notice = document.getElementById('promoNotice');
+      if (code === 'SUMMIT20') {
+        notice.style.display = 'block';
+        notice.style.color = '#15803d';
+        notice.innerText = '✓ Promo code SUMMIT20 applied! 20% discount will reflect at checkout.';
+      } else if (code) {
+        notice.style.display = 'block';
+        notice.style.color = '#b91c1c';
+        notice.innerText = '✕ Invalid promo code.';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expedia: Flights from San Francisco (SFO) to New York (JFK)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='expedia.css') }}">
+</head>
+<body class="exp-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expedia Top Header -->
+  <header class="exp-header">
+    <a href="/expedia" class="exp-logo">
+      <i class="fa-solid fa-plane-departure" style="color:var(--exp-yellow);"></i>
+      <span>Expedia</span><span class="exp-logo-dot">.com</span>
+    </a>
+    <div class="exp-nav-items">
+      <a href="/expedia" class="exp-nav-item active"><i class="fa-solid fa-plane"></i> Flights</a>
+      <a href="/expedia/trips" class="exp-nav-item"><i class="fa-solid fa-suitcase-rolling"></i> My Trips</a>
+      <div style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:13px; color:#fff;">
+        <i class="fa-solid fa-circle-user" style="font-size:18px; color:var(--exp-yellow);"></i>
+        <span>Alex Mercer</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Flight Search Section -->
+  <div class="exp-search-section">
+    <div class="exp-container">
+      <div class="exp-search-tabs">
+        <div class="exp-tab active">Roundtrip</div>
+        <div class="exp-tab">One-way</div>
+        <div class="exp-tab">Multi-city</div>
+        <div style="margin-left:auto; display:flex; gap:12px; font-size:13px; color:var(--exp-subtext); align-items:center;">
+          <span>1 Traveler &bull; Economy</span>
+          <!-- Browser Geolocation Trigger (IT-5 Dialog trigger) -->
+          <button type="button" onclick="openLocationModal()" style="background:none; border:1px solid #cdd3dc; border-radius:6px; padding:4px 8px; font-size:12px; cursor:pointer; color:var(--exp-blue);">
+            <i class="fa-solid fa-location-crosshairs"></i> <span id="currentAirportLabel">Origin: SFO (San Francisco)</span>
+          </button>
+        </div>
+      </div>
+
+      <form action="/expedia" method="GET" class="exp-search-bar-grid">
+        <div class="exp-input-box">
+          <div class="exp-input-label">Leaving from</div>
+          <input type="text" name="origin" class="exp-input-val" value="{{ origin or 'SFO' }}" placeholder="Airport or city">
+        </div>
+
+        <div class="exp-input-box">
+          <div class="exp-input-label">Going to</div>
+          <input type="text" name="destination" class="exp-input-val" value="{{ destination or 'JFK' }}" placeholder="Airport or city">
+        </div>
+
+        <div class="exp-input-box">
+          <div class="exp-input-label">Departure Date</div>
+          <input type="text" name="depart_date" class="exp-input-val" value="Nov 18, 2026">
+        </div>
+
+        <div class="exp-input-box">
+          <div class="exp-input-label">Return Date</div>
+          <input type="text" name="return_date" class="exp-input-val" value="Nov 23, 2026">
+        </div>
+
+        <button type="submit" class="btn-exp-search">
+          <i class="fa-solid fa-magnifying-glass"></i> Search
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Flight Results Layout -->
+  <div class="exp-results-layout">
+    <!-- Left Column: Filters -->
+    <div class="exp-filter-card">
+      <h3 style="font-size:16px; font-weight:800; color:var(--exp-text); margin-bottom:14px;">Filter by</h3>
+
+      <div class="exp-filter-group">
+        <div class="exp-filter-title">Stops</div>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> Nonstop (3)</label>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> 1 Stop (1)</label>
+      </div>
+
+      <div class="exp-filter-group">
+        <div class="exp-filter-title">Airlines</div>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> Delta Air Lines</label>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> United Airlines</label>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> American Airlines</label>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> Alaska Airlines</label>
+      </div>
+
+      <div class="exp-filter-group">
+        <div class="exp-filter-title">Departure Time</div>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> Morning (6:00 AM – 12:00 PM)</label>
+        <label class="exp-checkbox-label"><input type="checkbox" checked> Afternoon (12:00 PM – 6:00 PM)</label>
+      </div>
+    </div>
+
+    <!-- Right Column: Flight Cards -->
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <span style="font-weight:700; color:var(--exp-text); font-size:16px;">
+          {{ flights|length }} flights found: {{ origin or 'SFO' }} &rarr; {{ destination or 'JFK' }}
+        </span>
+        <span style="font-size:13px; color:var(--exp-subtext);">Sorted by <strong>Recommended</strong></span>
+      </div>
+
+      {% for flight in flights %}
+        <div class="exp-flight-card">
+          <div class="exp-flight-main">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong style="color:var(--exp-blue); font-size:14px;">{{ flight.airline }}</strong>
+              <span style="color:#64748b; font-size:12px;">Flight {{ flight.flight_number }}</span>
+            </div>
+
+            <div class="exp-flight-route">
+              <div class="exp-time-col">
+                <strong>{{ flight.depart_time }}</strong>
+                <span>{{ flight.origin_code }}</span>
+              </div>
+
+              <div class="exp-route-visual">
+                <span style="font-size:12px; color:var(--exp-subtext);">{{ flight.duration }}</span>
+                <div class="exp-route-line"></div>
+                <div class="exp-route-stops {% if flight.stops == 0 %}exp-tag-nonstop{% endif %}">
+                  {{ flight.stops_info }}
+                </div>
+              </div>
+
+              <div class="exp-time-col">
+                <strong>{{ flight.arrive_time }}</strong>
+                <span>{{ flight.dest_code }}</span>
+              </div>
+            </div>
+
+            <div style="font-size:12px; color:var(--exp-subtext); display:flex; gap:12px;">
+              <span><i class="fa-solid fa-wifi"></i> Wi-Fi Available</span>
+              <span><i class="fa-solid fa-plug"></i> In-seat Power</span>
+              <span><i class="fa-solid fa-tv"></i> On-demand Entertainment</span>
+            </div>
+          </div>
+
+          <div class="exp-flight-price-col">
+            <div>
+              <div class="exp-flight-price">${{ "%.0f"|format(flight.price) }}</div>
+              <div class="exp-flight-price-sub">roundtrip per traveler</div>
+            </div>
+
+            <!-- Trigger for flight review (No boundary on trigger) -->
+            <a href="/expedia/flight/select/{{ flight.id }}" class="btn-exp-select" id="btnSelectFlight-{{ flight.id }}">
+              Select &rarr;
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- IT-5: Browser Geolocation Permission Modal for Nearest Airport -->
+  <div class="exp-modal-backdrop" id="locationModal">
+    <div class="exp-modal-box it-boundary it-color-teal" style="max-width:480px;">
+      <div class="it-badge it-badge-teal">
+        <span class="it-badge-code">IT-5</span>
+        <span class="it-badge-name">Resolve request for browser permissions</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+        <h3 style="font-size:16px; font-weight:800; color:var(--exp-blue);"><i class="fa-solid fa-location-dot"></i> Airport Location Access</h3>
+        <button type="button" onclick="closeLocationModal()" style="background:none; border:none; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:var(--exp-subtext); margin-bottom:16px;">
+        Allow Expedia to access your browser location to find the lowest airfares and nearest departure airport automatically.
+      </p>
+
+      <button type="button" class="btn-exp-search" onclick="grantBrowserLocation()" style="width:100%; margin-bottom:10px;">
+        <i class="fa-solid fa-crosshairs"></i> Share Browser Location
+      </button>
+
+      <button type="button" onclick="closeLocationModal()" style="width:100%; padding:10px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; font-weight:600; cursor:pointer;">
+        No thanks, keep SFO
+      </button>
+    </div>
+  </div>
+
+  <!-- IT-6: Cookie Consent Banner -->
+  <div class="exp-cookie-banner eb-cookie-banner it-boundary it-color-teal" id="cookieBanner" style="display:none;">
+    <div class="it-badge it-badge-teal">
+      <span class="it-badge-code">IT-6</span>
+      <span class="it-badge-name">Resolve cookie and tracking-consent choices</span>
+    </div>
+    <div class="eb-cookie-text">
+      <strong>Expedia Privacy &amp; Cookie Choices:</strong> We use cookies to remember your travel search history, provide personalized fare alerts, and protect flight bookings.
+    </div>
+    <div class="eb-cookie-actions">
+      <button type="button" class="btn-cookie-decline" onclick="dismissCookieBanner(false)">Essential only</button>
+      <button type="button" class="btn-cookie-accept" onclick="dismissCookieBanner(true)" style="background:var(--exp-yellow); color:#191e3b;">Accept all</button>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    // IT-6 Cookie banner
+    if (!localStorage.getItem('exp_cookie_consent')) {
+      document.getElementById('cookieBanner').style.display = 'flex';
+    }
+    function dismissCookieBanner(all) {
+      localStorage.setItem('exp_cookie_consent', all ? 'all' : 'essential');
+      document.getElementById('cookieBanner').style.display = 'none';
+    }
+
+    // IT-5 Geolocation
+    function openLocationModal() {
+      document.getElementById('locationModal').classList.add('active');
+    }
+    function closeLocationModal() {
+      document.getElementById('locationModal').classList.remove('active');
+    }
+    function grantBrowserLocation() {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            alert('Location granted! Serving flights departing from San Francisco International (SFO).');
+            document.getElementById('currentAirportLabel').innerText = 'Origin: SFO (Verified)';
+            closeLocationModal();
+          },
+          err => {
+            alert('Location permission resolved. Defaulting to SFO.');
+            closeLocationModal();
+          }
+        );
+      } else {
+        closeLocationModal();
+      }
+    }
+  </script>
+</body>
+</html>

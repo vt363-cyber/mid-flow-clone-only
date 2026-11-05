@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon.com Checkout — Select Payment Method</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='amazon.css') }}">
+</head>
+<body class="spc-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Benchmark Task Hub">
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Amazon Minimal Checkout Header -->
+  <header class="spc-header">
+    <div class="spc-header-container">
+      <a href="/amazon" class="spc-logo">
+        <span class="a-logo-text">amazon</span><span class="a-logo-dot">.com</span>
+      </a>
+      <h1 class="spc-title">Checkout (<span class="spc-item-count">{{ cart_count }} items</span>)</h1>
+      <div class="spc-secure-badge">
+        <i class="fa fa-lock"></i>
+      </div>
+    </div>
+  </header>
+
+  <main class="spc-main-container">
+    <div class="spc-layout">
+      <!-- Left Column: Payment Selection Flow -->
+      <div class="spc-steps-col">
+        <div class="spc-section-card">
+          <div class="section-num-header">
+            <div class="section-title-wrap">
+              <span class="step-num">2</span>
+              <h2>Select a payment method</h2>
+            </div>
+            <a href="/amazon/gp/buy/spc/handlers/display.html" class="link-change-step">&larr; Back to Order Review</a>
+          </div>
+
+          <form action="/amazon/gp/buy/payselect/select" method="POST" id="paymentMethodForm">
+
+            <!-- Section A: Your credit and debit cards -->
+            <h3 style="font-size: 15px; margin: 14px 0 10px; color: #0f1111;">Your credit and debit cards</h3>
+            <div class="a-payment-cards-container">
+              {% for card in payment_cards %}
+                <div class="payment-card-row {% if selected_card and selected_card.id == card.id %}selected{% elif not selected_card and loop.first %}selected{% endif %}" onclick="selectPaymentCard(this, {{ card.id }})">
+                  <input type="radio" name="card_id" value="{{ card.id }}" id="card-radio-{{ card.id }}"
+                         {% if selected_card and selected_card.id == card.id %}checked{% elif not selected_card and loop.first %}checked{% endif %}>
+                  <div class="payment-card-info">
+                    <div class="card-main-line">
+                      {% if card.card_type == 'Visa' %}
+                        <i class="fa-brands fa-cc-visa" style="color:#1a1f71; font-size: 24px;"></i>
+                      {% elif card.card_type == 'Mastercard' %}
+                        <i class="fa-brands fa-cc-mastercard" style="color:#eb001b; font-size: 24px;"></i>
+                      {% elif card.card_type == 'Amex' %}
+                        <i class="fa-brands fa-cc-amex" style="color:#007bc1; font-size: 24px;"></i>
+                      {% else %}
+                        <i class="fa-regular fa-credit-card" style="font-size: 24px;"></i>
+                      {% endif %}
+                      <span><strong>{{ card.card_title }}</strong> ending in <strong>{{ card.card_last4 }}</strong></span>
+                      {% if card.badge_text %}
+                        <span class="card-badge-prime"><i class="fa-solid fa-star"></i> {{ card.badge_text }}</span>
+                      {% endif %}
+                    </div>
+                    <div class="card-meta-line">
+                      <span>Name on card: {{ card.cardholder_name }}</span> &bull; <span>Expires: {{ card.expiry_month }}/{{ card.expiry_year }}</span>
+                    </div>
+
+                    <!-- CVV Prompt on Selected Card (IT-17) -->
+                    <div class="cvv-verification-box it-boundary it-color-amber" style="padding: 6px 8px; border-radius: 4px; margin-top: 10px;">
+                      <div class="it-badge it-badge-amber"><span class="it-badge-code">IT-17</span> <span class="it-badge-name">Reveal sensitive obscured information</span></div>
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span>Security code (CVV):</span>
+                        <input type="password" maxlength="4" class="cvv-input" placeholder="•••" value="842">
+                        <span class="cvv-help" title="3 digits on the back of your card (4 digits on front for Amex)"><i class="fa-solid fa-circle-question"></i> What is this?</span>
+                      </div>
+                    </div>
+
+                    <!-- IT-10: Save card choice -->
+                    <div class="it-boundary it-color-green" style="margin-top: 8px; font-size: 13px; padding: 4px 6px; border-radius: 4px;">
+                      <div class="it-badge it-badge-green"><span class="it-badge-code">IT-10</span> <span class="it-badge-name">Decide whether to retain / save details</span></div>
+                      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top: 2px;">
+                        <input type="checkbox" name="save_card_for_future" value="1" checked>
+                        <span>Save this card for future purchases</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- Signature Yellow Button -->
+            <div style="margin: 16px 0 24px;">
+              <button type="submit" class="a-btn-deliver-here" style="width: auto; padding: 10px 32px; font-size: 14px;">
+                Use this payment method
+              </button>
+            </div>
+
+            <!-- Section B: Gift Cards, Vouchers & Promotional Codes (IT-12) -->
+            <div class="a-gift-promo-section">
+              <h3 style="font-size: 15px; margin-bottom: 12px; color: #0f1111;">Gift Cards &amp; Promotional Codes</h3>
+
+              <div class="gc-balance-row">
+                <input type="checkbox" name="apply_gift_card" value="1" id="giftCheck" {% if has_gift_card %}checked{% endif %} onchange="updateSummaryCalc()">
+                <label for="giftCheck" style="cursor:pointer;">
+                  Use your <strong style="color: #b12704;">$25.00 Amazon.com Gift Card balance</strong>
+                </label>
+              </div>
+
+              <!-- Promo Code Box (IT-12) -->
+              <div class="it-boundary it-color-green" style="padding: 8px; border-radius: 6px; margin-top: 10px;">
+                <div class="it-badge it-badge-green"><span class="it-badge-code">IT-12</span> <span class="it-badge-name">Fill additional options</span></div>
+                <label style="display:block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #0f1111;">
+                  Enter a gift card, voucher or promo code:
+                </label>
+                <div class="promo-code-input-group">
+                  <input type="text" id="promoCodeInput" name="promo_code" class="promo-input" placeholder="e.g. AMAZON20 or PRIME10" value="{{ applied_promo or '' }}">
+                  <button type="button" class="btn-apply-promo" onclick="applyPromoCode()">Apply</button>
+                </div>
+                <div id="promoAlert" class="promo-alert-box {% if applied_promo %}promo-alert-success{% endif %}">
+                  {% if applied_promo %}
+                    ✓ Code <strong>{{ applied_promo }}</strong> applied! ($20.00 discount)
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Section C: Other payment options -->
+            <h3 style="font-size: 15px; margin: 18px 0 10px; color: #0f1111;">Other payment options</h3>
+
+            <!-- 1. Add credit or debit card form toggle -->
+            <div class="add-card-toggle" onclick="toggleAddCardForm()">
+              <i class="fa-solid fa-plus"></i>
+              <span>Add a credit or debit card</span>
+            </div>
+
+            <div class="add-card-form-box" id="addCardBox">
+              <div class="card-form-grid">
+                <div class="card-form-group">
+                  <label>Card number</label>
+                  <input type="text" placeholder="16-digit card number">
+                </div>
+                <div class="card-form-group">
+                  <label>Name on card</label>
+                  <input type="text" placeholder="First and last name">
+                </div>
+                <div class="card-form-group">
+                  <label>Expiration date</label>
+                  <div style="display:flex; gap:6px;">
+                    <select style="flex:1;">
+                      {% for m in range(1, 13) %}<option value="{{ m }}">{{ "%02d"|format(m) }}</option>{% endfor %}
+                    </select>
+                    <select style="flex:1;">
+                      {% for y in range(2026, 2036) %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="card-form-group">
+                  <label>Security code (CVV)</label>
+                  <input type="password" maxlength="4" placeholder="CVV">
+                </div>
+                <!-- IT-10: Save card choice -->
+                <div class="card-form-group it-boundary it-color-green" style="grid-column: 1 / -1; padding: 4px 6px; border-radius: 4px;">
+                  <div class="it-badge it-badge-green"><span class="it-badge-code">IT-10</span> <span class="it-badge-name">Decide whether to retain / save details</span></div>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" checked>
+                    <span>Save card for future purchases</span>
+                  </label>
+                </div>
+              </div>
+              <button type="button" class="a-btn-deliver-here" style="width: auto; padding: 7px 20px;" onclick="alert('Card verified and added to your wallet.')">Add your card</button>
+            </div>
+
+            <!-- 2. Affirm / Amazon Pay Monthly financing -->
+            <div class="monthly-payments-card" style="margin-top: 14px;">
+              <span class="affirm-badge">affirm</span>
+              <div>
+                <strong>Amazon Monthly Payments</strong> &bull; Pay ${{ "%.2f"|format(subtotal / 4) }}/mo for 4 months at 0% APR.
+                <div style="font-size: 11px; color: #565959;">No hidden fees. Instant approval at checkout.</div>
+              </div>
+            </div>
+
+            <!-- 3. Billing Address Toggle -->
+            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #eee; font-size: 13px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" checked>
+                <span>Billing address is the same as shipping address (<strong>742 Evergreen Terrace, Springfield, OR</strong>)</span>
+              </label>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Sticky Summary Box -->
+      <div class="spc-summary-col">
+        <div class="spc-summary-card">
+          <a href="/amazon/gp/buy/spc/handlers/display.html" class="a-btn-yellow a-btn-place-order" style="display:block; text-align:center; text-decoration:none;">
+            Return to Checkout
+          </a>
+          <hr class="summary-divider">
+          <h3>Order Summary</h3>
+          <div class="summary-row">
+            <span>Items ({{ cart_count }}):</span>
+            <span>${{ "%.2f"|format(subtotal) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Shipping:</span>
+            <span>FREE</span>
+          </div>
+          <div class="summary-row" id="giftRow" style="{% if not has_gift_card %}display:none;{% endif %} color:#b12704;">
+            <span>Gift Card:</span>
+            <span>-$25.00</span>
+          </div>
+          <div class="summary-row" id="promoRow" style="{% if not promo_discount %}display:none;{% endif %} color:#b12704;">
+            <span>Promo Code:</span>
+            <span id="promoVal">-${{ "%.2f"|format(promo_discount or 0) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Estimated tax:</span>
+            <span>${{ "%.2f"|format(subtotal * 0.0825) }}</span>
+          </div>
+          <hr class="summary-divider">
+          <div class="summary-total-row">
+            <span>Order total:</span>
+            <span id="totalDisplay">${{ "%.2f"|format(subtotal + (subtotal * 0.0825) - (25 if has_gift_card else 0) - (promo_discount or 0)) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Global IT Bounding Box Toggle Logic
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    const baseSubtotal = {{ subtotal }};
+    const taxRate = 0.0825;
+    let promoDiscount = {{ promo_discount or 0 }};
+
+    function selectPaymentCard(row, cardId) {
+      document.querySelectorAll('.payment-card-row').forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+      const radio = document.getElementById('card-radio-' + cardId);
+      if (radio) radio.checked = true;
+    }
+
+    function toggleAddCardForm() {
+      const box = document.getElementById('addCardBox');
+      box.classList.toggle('active');
+    }
+
+    function updateSummaryCalc() {
+      const useGift = document.getElementById('giftCheck').checked;
+      document.getElementById('giftRow').style.display = useGift ? 'flex' : 'none';
+      const tax = baseSubtotal * taxRate;
+      const total = Math.max(0, baseSubtotal + tax - (useGift ? 25.00 : 0.00) - promoDiscount);
+      document.getElementById('totalDisplay').innerText = '$' + total.toFixed(2);
+    }
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) {
+        return;
+      }
+      fetch('/api/benchmark/reset', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
+          });
+        } catch (e) {}
+        alert("Environment reset complete! State, database, and cookies have been restored to defaults.");
+        window.location.reload();
+      })
+      .catch(err => {
+        window.location.href = '/api/benchmark/reset';
+      });
+    }
+
+    async function applyPromoCode() {
+      const code = document.getElementById('promoCodeInput').value.trim();
+      if (!code) return;
+      const res = await fetch('/amazon/gp/promo/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'code=' + encodeURIComponent(code)
+      });
+      const data = await res.json();
+      const alertBox = document.getElementById('promoAlert');
+      if (data.valid) {
+        promoDiscount = data.discount;
+        alertBox.className = 'promo-alert-box promo-alert-success';
+        alertBox.innerHTML = '✓ Code <strong>' + data.code + '</strong> applied! ($' + data.discount.toFixed(2) + ' discount)';
+        document.getElementById('promoRow').style.display = 'flex';
+        document.getElementById('promoVal').innerText = '-$' + data.discount.toFixed(2);
+        updateSummaryCalc();
+      } else {
+        alertBox.className = 'promo-alert-box promo-alert-error';
+        alertBox.innerText = 'The promotional code you entered is invalid or expired.';
+      }
+    }
+  </script>
+
+</body>
+</html>

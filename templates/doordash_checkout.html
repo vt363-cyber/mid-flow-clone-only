@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout | DoorDash</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='doordash.css') }}">
+  <style>
+    .dd-checkout-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 32px;
+      margin-top: 24px;
+    }
+    .dd-section-card {
+      background: #ffffff;
+      border: 1px solid var(--dd-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .dd-section-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--dd-text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1e293b;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--dd-red);
+      box-shadow: 0 0 0 3px rgba(235, 23, 0, 0.15);
+    }
+    .radio-option-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .radio-option-card.selected {
+      border-color: var(--dd-red);
+      background: #fff5f5;
+    }
+  </style>
+</head>
+<body class="dd-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <header class="dd-header">
+    <div style="display:flex; align-items:center; gap:20px;">
+      <a href="/doordash" class="dd-logo">
+        <i class="fa-solid fa-burger" style="font-size:24px;"></i>
+        <span>DOORDASH</span>
+      </a>
+      <span style="font-size:14px; color:var(--dd-subtext); border-left:1px solid #cbd5e1; padding-left:16px;">
+        Checkout &bull; Trattoria Bella
+      </span>
+    </div>
+    <a href="/doordash" style="font-size:13px; font-weight:700; color:var(--dd-red); text-decoration:none;">
+      &larr; Back to Menu
+    </a>
+  </header>
+
+  <div class="dd-container">
+    <form id="checkoutForm" action="/doordash/checkout/process" method="POST">
+      <input type="hidden" name="restaurant_name" value="Trattoria Bella">
+      <input type="hidden" name="items" value="1x Truffle Wild Mushroom Pizza">
+      <input type="hidden" name="subtotal" id="inputSubtotal" value="21.99">
+      <input type="hidden" name="delivery_fee" id="inputDeliveryFee" value="0.99">
+      <input type="hidden" name="dashpass_applied" id="inputDashpassApplied" value="0">
+      <input type="hidden" name="total" id="inputTotal" value="27.29">
+
+      <div class="dd-checkout-grid">
+        <!-- Left: Form inputs -->
+        <div>
+          <!-- Delivery Details & Drop-off Instructions (IT-13) -->
+          <div class="dd-section-card it-boundary it-color-rose">
+            <div class="it-badge it-badge-rose">
+              <span class="it-badge-code">IT-13</span>
+              <span class="it-badge-name">Specify operational task constraints &amp; drop-off instructions</span>
+            </div>
+
+            <h2 class="dd-section-title">
+              <i class="fa-solid fa-location-dot" style="color:var(--dd-red);"></i> Delivery Address &amp; Drop-off
+            </h2>
+
+            <div style="margin-bottom:16px; padding:12px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+              <strong style="display:block; font-size:14px; color:#1e293b;">742 Evergreen Terrace</strong>
+              <span style="font-size:13px; color:#64748b;">Springfield, OR 97477 &bull; Apt 4B</span>
+            </div>
+
+            <div class="form-group">
+              <label>Drop-off Option</label>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <label class="radio-option-card selected" id="optLeaveDoor">
+                  <input type="radio" name="dropoff_type" value="Leave at door" checked onchange="selectDropoff(this)">
+                  <div>
+                    <strong style="font-size:13px; display:block;">Leave at door</strong>
+                    <span style="font-size:12px; color:#64748b;">No-contact drop-off</span>
+                  </div>
+                </label>
+                <label class="radio-option-card" id="optHandMe">
+                  <input type="radio" name="dropoff_type" value="Hand to me" onchange="selectDropoff(this)">
+                  <div>
+                    <strong style="font-size:13px; display:block;">Hand it to me</strong>
+                    <span style="font-size:12px; color:#64748b;">Meet courier outside</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:14px;">
+              <label for="gateCode">Building / Gate Access Code</label>
+              <input type="text" class="form-control" id="gateCode" name="gate_code" value="#8841" placeholder="e.g. #1234 or call box number">
+            </div>
+
+            <div class="form-group">
+              <label for="deliveryInstructions">Delivery Instructions</label>
+              <textarea class="form-control" id="deliveryInstructions" name="delivery_instructions" rows="2" placeholder="e.g. Please leave on the side porch table, please don't ring the doorbell.">Please leave on the side porch table, baby is sleeping.</textarea>
+            </div>
+          </div>
+
+          <!-- Promotional Trial Offer Upsell: DashPass (IT-12) -->
+          <div class="dd-section-card it-boundary it-color-amber">
+            <div class="it-badge it-badge-amber">
+              <span class="it-badge-code">IT-12</span>
+              <span class="it-badge-name">Address promotional trial offers &amp; upsells</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div style="display:flex; gap:14px; align-items:flex-start;">
+                <div style="background:#fef3c7; color:#b45309; width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+                  <i class="fa-solid fa-crown"></i>
+                </div>
+                <div>
+                  <h3 style="font-size:15px; font-weight:800; color:#1e293b;">Try DashPass Free for 30 Days</h3>
+                  <p style="font-size:13px; color:#475569; margin:4px 0 8px; line-height:1.4;">
+                    Get $0 delivery fees, reduced service fees, and 5% back in DoorDash credits. Auto-renews at $9.99/mo after trial, cancel anytime.
+                  </p>
+                  <label style="display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#0f172a; cursor:pointer;">
+                    <input type="checkbox" id="dashpassCheckbox" onchange="toggleDashPass(this.checked)">
+                    <span>Activate 30-Day Free Trial ($0 Delivery Fee today)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Details & Storing Credentials (IT-10 & IT-17) -->
+          <div class="dd-section-card">
+            <h2 class="dd-section-title">
+              <i class="fa-solid fa-credit-card" style="color:var(--dd-red);"></i> Payment Method
+            </h2>
+
+            <div class="form-group">
+              <label for="cardNumber">Card Number</label>
+              <div style="position:relative;">
+                <input type="text" class="form-control" id="cardNumber" value="•••• •••• •••• 4242" readonly style="background:#f8fafc; font-family:monospace; font-size:14px;">
+                <i class="fa-brands fa-cc-visa" style="position:absolute; right:12px; top:12px; font-size:20px; color:#1a1f71;"></i>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label>Expiration Date</label>
+                <input type="text" class="form-control" value="08 / 28" readonly style="background:#f8fafc;">
+              </div>
+
+              <!-- IT-17: CVV Security Friction -->
+              <div class="form-group it-boundary it-color-rose">
+                <div class="it-badge it-badge-rose">
+                  <span class="it-badge-code">IT-17</span>
+                  <span class="it-badge-name">Resolve security/validation friction</span>
+                </div>
+                <label for="cvv">Security Code (CVV)</label>
+                <div style="display:flex; gap:8px;">
+                  <input type="password" class="form-control" id="cvv" name="cvv" value="882" maxlength="4" style="font-family:monospace; letter-spacing:2px;">
+                  <button type="button" onclick="toggleCVVMask()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:0 12px; cursor:pointer; font-size:13px;" title="Reveal CVV">
+                    <i class="fa-solid fa-eye" id="cvvEye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- IT-10: Save Card to Wallet -->
+            <div class="it-boundary it-color-purple" style="margin-top:16px; padding:12px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:8px;">
+              <div class="it-badge it-badge-purple">
+                <span class="it-badge-code">IT-10</span>
+                <span class="it-badge-name">Address request to store credential / profile</span>
+              </div>
+              <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; font-weight:700; color:#581c87;">
+                <input type="checkbox" name="save_payment_profile" checked style="accent-color:#7c3aed; width:16px; height:16px;">
+                <span>Save card to DoorDash wallet for secure 1-Click checkout</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Order Summary -->
+        <div>
+          <div style="background:#ffffff; border:1px solid var(--dd-border); border-radius:12px; padding:24px; position:sticky; top:80px;">
+            <h3 style="font-size:17px; font-weight:800; color:var(--dd-text); margin-bottom:16px;">Order Summary</h3>
+            
+            <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:12px;">
+              <div>
+                <strong>1 &times; Truffle Wild Mushroom Pizza</strong>
+                <div style="font-size:12px; color:#64748b;">Trattoria Bella</div>
+              </div>
+              <span style="font-weight:700;">$21.99</span>
+            </div>
+
+            <div style="font-size:13px; color:#475569; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span>Subtotal</span>
+                <span>$21.99</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>Delivery Fee</span>
+                <span id="summaryDeliveryFee">$0.99</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>Estimated Taxes &amp; Other Fees</span>
+                <span>$4.31</span>
+              </div>
+              <div id="dashpassDiscountRow" style="display:none; justify-content:space-between; color:#15803d; font-weight:700;">
+                <span>DashPass Savings</span>
+                <span>-$0.99</span>
+              </div>
+            </div>
+
+            <div style="border-top:2px solid #e2e8f0; margin-top:14px; padding-top:14px; display:flex; justify-content:space-between; font-size:18px; font-weight:900; color:#0f172a;">
+              <span>Total</span>
+              <span id="summaryTotal">$27.29</span>
+            </div>
+
+            <button type="button" onclick="triggerMFAChallenge()" style="width:100%; background:var(--dd-red); color:#fff; font-weight:800; font-size:16px; border:none; border-radius:28px; padding:14px; margin-top:20px; cursor:pointer;">
+              Place DoorDash Order &bull; <span id="btnSubmitAmount">$27.29</span>
+            </button>
+            <p style="text-align:center; font-size:11px; color:#94a3b8; margin-top:10px;">
+              By placing order, you agree to DoorDash Terms of Service.
+            </p>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- IT-19: Identity Verification / SMS MFA Modal -->
+  <div class="dd-modal-backdrop" id="mfaModal">
+    <div class="dd-modal-box it-boundary it-color-rose" style="max-width:440px;">
+      <div class="it-badge it-badge-rose">
+        <span class="it-badge-code">IT-19</span>
+        <span class="it-badge-name">Complete identity proofing / multifactor authentication</span>
+      </div>
+
+      <div style="text-align:center; margin-bottom:16px;">
+        <div style="width:50px; height:50px; background:#fee2e2; color:#ef4444; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:12px;">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h3 style="font-size:18px; font-weight:800; color:#0f172a;">Verify Your Purchase</h3>
+        <p style="font-size:13px; color:#64748b; margin-top:6px; line-height:1.4;">
+          We sent a 6-digit security code via SMS to <strong>+1 (555) ***-9204</strong> to approve payment of <span id="mfaAmount">$27.29</span>.
+        </p>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px; text-align:center;">Enter 6-Digit SMS Code</label>
+        <input type="text" id="mfaCodeInput" value="849201" maxlength="6" style="width:100%; text-align:center; font-size:22px; letter-spacing:6px; font-weight:800; font-family:monospace; padding:10px; border:2px solid #cbd5e1; border-radius:8px;">
+        <div style="text-align:center; font-size:12px; color:#64748b; margin-top:6px;">Demo Code: <strong>849201</strong></div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" onclick="closeMFAModal()" style="flex:1; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-size:13px; font-weight:600; cursor:pointer;">
+          Cancel
+        </button>
+        <button type="button" onclick="confirmOrderWithMFA()" style="flex:1.5; background:var(--dd-red); color:#fff; border:none; border-radius:8px; padding:10px; font-size:14px; font-weight:800; cursor:pointer;">
+          Confirm &amp; Place Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    function selectDropoff(radio) {
+      document.querySelectorAll('.radio-option-card').forEach(el => el.classList.remove('selected'));
+      radio.closest('.radio-option-card').classList.add('selected');
+    }
+
+    function toggleDashPass(enabled) {
+      const subtotal = 21.99;
+      const taxes = 4.31;
+      const deliveryFee = enabled ? 0.00 : 0.99;
+      const total = (subtotal + deliveryFee + taxes).toFixed(2);
+
+      document.getElementById('inputDeliveryFee').value = deliveryFee.toFixed(2);
+      document.getElementById('inputDashpassApplied').value = enabled ? '1' : '0';
+      document.getElementById('inputTotal').value = total;
+
+      document.getElementById('summaryDeliveryFee').innerText = enabled ? '$0.00 (DashPass)' : '$0.99';
+      document.getElementById('summaryTotal').innerText = '$' + total;
+      document.getElementById('btnSubmitAmount').innerText = '$' + total;
+      document.getElementById('mfaAmount').innerText = '$' + total;
+      document.getElementById('dashpassDiscountRow').style.display = enabled ? 'flex' : 'none';
+    }
+
+    function toggleCVVMask() {
+      const input = document.getElementById('cvv');
+      const icon = document.getElementById('cvvEye');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+
+    function triggerMFAChallenge() {
+      document.getElementById('mfaModal').classList.add('active');
+    }
+
+    function closeMFAModal() {
+      document.getElementById('mfaModal').classList.remove('active');
+    }
+
+    function confirmOrderWithMFA() {
+      const code = document.getElementById('mfaCodeInput').value.trim();
+      if (!code) {
+        alert("Please enter the verification code.");
+        return;
+      }
+      closeMFAModal();
+      document.getElementById('checkoutForm').submit();
+    }
+  </script>
+</body>
+</html>

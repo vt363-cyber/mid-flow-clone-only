@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block title %}Amazon.com : Order Placed{% endblock %}
+
+{% block content %}
+<div class="a-thankyou-container">
+  <div class="a-thankyou-card">
+    <div class="thankyou-banner">
+      <i class="fa fa-circle-check thankyou-icon"></i>
+      <div>
+        <h2>Order placed, thanks!</h2>
+        <p>Confirmation will be sent to your email (<strong>{{ order.email }}</strong>).</p>
+      </div>
+    </div>
+
+    <div class="thankyou-delivery-card">
+      <div class="deliv-header">
+        <span class="deliv-badge">Guaranteed delivery:</span>
+        <strong class="deliv-date">{{ order.delivery_date }}</strong>
+      </div>
+      <div class="deliv-ship-to">
+        Shipping to <strong>{{ order.shipping_name }}</strong>, {{ order.shipping_address }}, {{ order.city }} {{ order.state }}
+      </div>
+
+      <div class="thankyou-items-grid">
+        {% for item in items %}
+          <div class="thankyou-item-pill">
+            <span class="item-title">{{ item.title[:65] }}...</span>
+            <span class="item-qty">Qty: {{ item.quantity }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="thankyou-meta-box">
+      <div class="meta-row">
+        <span>Order Number:</span>
+        <strong>{{ order.order_number }}</strong>
+      </div>
+      <div class="meta-row">
+        <span>Payment Method:</span>
+        <span>{{ order.payment_method }}</span>
+      </div>
+      <div class="meta-row">
+        <span>Total Charged:</span>
+        <strong>${{ "%.2f"|format(order.total) }}</strong>
+      </div>
+    </div>
+
+    <div class="thankyou-actions">
+      <a href="/amazon/gp/your-account/order-history" class="a-btn-white">Review or edit recent orders</a>
+      <a href="/amazon" class="a-btn-yellow">Continue Shopping</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

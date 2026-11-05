@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+
+{% block title %}Amazon.com : {{ query or 'Results' }}{% endblock %}
+
+{% block content %}
+<div class="a-search-container">
+  <!-- Left Facet Filters -->
+  <aside class="a-filter-sidebar">
+    <div class="filter-group">
+      <h4>Delivery Day</h4>
+      <label class="facet-label">
+        <input type="checkbox" {% if prime_only %}checked{% endif %} onchange="location.href='/amazon/s?k={{ query }}&prime=' + (this.checked ? '1' : '0')">
+        <span class="prime-tag">prime</span> Get It Tomorrow
+      </label>
+    </div>
+
+    <div class="filter-group">
+      <h4>Department</h4>
+      <ul>
+        <li><a href="/amazon/s?k={{ query }}&i=all" class="{% if category == 'all' %}active-facet{% endif %}">Any Department</a></li>
+        <li><a href="/amazon/s?k={{ query }}&i=Electronics" class="{% if category == 'Electronics' %}active-facet{% endif %}">Electronics</a></li>
+        <li><a href="/amazon/s?k={{ query }}&i=Amazon+Devices" class="{% if category == 'Amazon Devices' %}active-facet{% endif %}">Amazon Devices</a></li>
+        <li><a href="/amazon/s?k={{ query }}&i=Fashion" class="{% if category == 'Fashion' %}active-facet{% endif %}">Fashion</a></li>
+      </ul>
+    </div>
+
+    <div class="filter-group">
+      <h4>Customer Reviews</h4>
+      <ul>
+        <li><a href="#"><span class="stars">★★★★☆</span> & Up</a></li>
+        <li><a href="#"><span class="stars">★★★☆☆</span> & Up</a></li>
+      </ul>
+    </div>
+
+    <div class="filter-group">
+      <h4>Price</h4>
+      <ul>
+        <li><a href="#">Under $50</a></li>
+        <li><a href="#">$50 to $100</a></li>
+        <li><a href="#">$100 to $200</a></li>
+        <li><a href="#">$200 & Above</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Right Results List -->
+  <div class="a-search-results-list">
+    <div class="results-header">
+      <span>1-{{ results|length }} of {{ results|length }} results for <strong class="highlight">"{{ query or 'catalog' }}"</strong></span>
+    </div>
+
+    {% for p in results %}
+      <div class="a-search-card">
+        <div class="card-img-wrap">
+          <a href="/amazon/dp/{{ p.asin }}">
+            <img src="{{ p.image_url }}" alt="{{ p.title }}">
+          </a>
+        </div>
+        <div class="card-details">
+          {% if p.best_seller_badge %}
+            <span class="a-badge-bestseller">{{ p.best_seller_badge }}</span>
+          {% endif %}
+          <h2 class="card-title">
+            <a href="/amazon/dp/{{ p.asin }}">{{ p.title }}</a>
+          </h2>
+          <div class="card-rating">
+            <span class="stars">★★★★★</span>
+            <span class="count">{{ "{:,}".format(p.rating_count) }}</span>
+            <span class="bought-count">5K+ bought in past month</span>
+          </div>
+
+          <div class="card-price-block">
+            <div class="price-row">
+              <span class="a-price-symbol">$</span>
+              <span class="a-price-whole">{{ "%.0f"|format(p.price) }}</span>
+              <span class="a-price-fraction">99</span>
+              {% if p.list_price > p.price %}
+                <span class="a-list-price">List: ${{ "%.2f"|format(p.list_price) }}</span>
+              {% endif %}
+            </div>
+            <div class="prime-delivery-row">
+              <span class="prime-tag">prime</span>
+              <span>FREE delivery <strong>Tomorrow, Nov 4</strong></span>
+            </div>
+            <div class="stock-note">
+              Only 5 left in stock - order soon.
+            </div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="no-results-box">
+        <h3>No results found for "{{ query }}"</h3>
+        <p>Try checking your spelling or use more general terms.</p>
+        <a href="/amazon" class="a-btn-yellow">Browse all departments</a>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

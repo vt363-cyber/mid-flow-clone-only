@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Trips | Expedia</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='expedia.css') }}">
+</head>
+<body class="exp-body">
+
+  <!-- Floating Benchmark Task Hub Bar -->
+  <div class="benchmark-hub-bar">
+    <a href="/hub" class="hub-bar-title" title="Go to Task Benchmark Hub">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Task Benchmark Hub</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button type="button" class="btn-hub-reset" onclick="resetBenchmarkEnvironment()" title="Reset all state, database changes, and cookies">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset State &amp; Cookies
+      </button>
+      <div class="hub-bar-toggle-wrap">
+        <label class="it-bounding-toggle" title="Toggle bounding boxes and labels over Incidental Tasks">
+          <input type="checkbox" id="itBoundingBoxToggle" onchange="toggleITBoundingBoxes(this.checked)">
+          <span class="it-toggle-slider"></span>
+          <span class="it-toggle-label">Highlight Incidental Tasks</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <header class="exp-header">
+    <a href="/expedia" class="exp-logo">
+      <i class="fa-solid fa-plane-departure" style="color:var(--exp-yellow);"></i>
+      <span>Expedia</span><span class="exp-logo-dot">.com</span>
+    </a>
+    <div class="exp-nav-actions">
+      <a href="/expedia" class="exp-nav-btn"><i class="fa-solid fa-magnifying-glass"></i> Book Flights</a>
+    </div>
+  </header>
+
+  <div class="exp-container" style="max-width:960px; margin:36px auto;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px;">
+      <div>
+        <h1 style="font-size:26px; font-weight:800; color:var(--exp-text);">My Trips &amp; Itineraries</h1>
+        <p style="color:var(--exp-subtext); font-size:14px; margin-top:4px;">Manage booked flights, view digital e-tickets, and adjust seat options.</p>
+      </div>
+      <a href="/expedia" class="btn-exp-select" style="font-size:13px; padding:8px 16px;">
+        <i class="fa-solid fa-plus"></i> Book Another Flight
+      </a>
+    </div>
+
+    {% if bookings and bookings|length > 0 %}
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        {% for b in bookings %}
+        <div class="exp-itinerary-card" style="margin-bottom:0;">
+          <div class="exp-itinerary-header">
+            <div>
+              <span class="exp-status-pill {% if b.status == 'Confirmed' %}exp-status-confirmed{% else %}exp-status-cancelled{% endif %}">
+                <i class="fa-solid {% if b.status == 'Confirmed' %}fa-circle-check{% else %}fa-circle-xmark{% endif %}"></i> {{ b.status }}
+              </span>
+              <span style="font-size:12px; color:var(--exp-subtext); margin-left:8px;">Booked on {{ b.created_at }}</span>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:11px; text-transform:uppercase; color:var(--exp-subtext); font-weight:700;">Expedia Itinerary #</span>
+              <strong style="font-family:monospace; font-size:13px; color:var(--exp-text); margin-left:4px;">{{ b.itinerary_id }}</strong>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:24px; align-items:center;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <i class="fa-solid fa-plane" style="color:var(--exp-blue);"></i>
+                <span style="font-weight:700; color:var(--exp-text);">{{ b.airline }} &bull; Flight {{ b.flight_number }}</span>
+                <span class="exp-pnr-badge" style="font-size:11px; padding:2px 6px;">PNR: {{ b.pnr }}</span>
+              </div>
+              <div style="font-size:16px; font-weight:800; color:var(--exp-text);">
+                {{ b.origin }} &rarr; {{ b.destination }}
+              </div>
+              <div style="font-size:12px; color:var(--exp-subtext); margin-top:2px;">
+                {{ b.dep_time }} - {{ b.arr_time }} &bull; {{ b.duration }} &bull; {{ b.stops }}
+              </div>
+              <div style="font-size:12px; color:var(--exp-text); margin-top:6px;">
+                Passenger: <strong>{{ b.first_name }} {{ b.last_name }}</strong> &bull; Seat: <strong>{{ b.seat_number }}</strong> ({{ b.cabin_class }})
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; height:100%;">
+              <div style="text-align:right;">
+                <span style="font-size:11px; color:var(--exp-subtext);">Total Fare</span>
+                <div style="font-size:22px; font-weight:900; color:var(--exp-text);">${{ "%.2f"|format(b.total_amount) }}</div>
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top:14px;">
+                <a href="/expedia/confirmation/{{ b.itinerary_id }}" class="btn-exp-select" style="padding:7px 14px; font-size:12px;">
+                  View Itinerary
+                </a>
+                {% if b.status == 'Confirmed' %}
+                <form action="/expedia/trips/cancel" method="POST" onsubmit="return confirm('Cancel flight reservation {{ b.itinerary_id }}?');" style="margin:0;">
+                  <input type="hidden" name="itinerary_id" value="{{ b.itinerary_id }}">
+                  <button type="submit" style="background:#fff; border:1px solid #cbd5e1; color:#b91c1c; border-radius:6px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer;">
+                    Cancel
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="background:#fff; border:1px dashed var(--exp-border); border-radius:12px; padding:48px 24px; text-align:center;">
+        <i class="fa-solid fa-plane-slash" style="font-size:48px; color:#94a3b8; margin-bottom:16px;"></i>
+        <h3 style="font-size:18px; font-weight:800; color:var(--exp-text); margin-bottom:6px;">No Flight Bookings Found</h3>
+        <p style="color:var(--exp-subtext); font-size:13px; max-width:440px; margin:0 auto 20px;">
+          You don't have any upcoming trips or recent flights booked under this benchmark account.
+        </p>
+        <a href="/expedia" class="btn-exp-select" style="padding:10px 22px;">
+          Search Available Flights
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+
+  <script>
+    function resetBenchmarkEnvironment() {
+      if (!confirm("Reset all benchmark state, cart, orders, and cookies to defaults?")) return;
+      fetch('/api/benchmark/reset', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          alert("Environment reset complete! Restored to defaults.");
+          window.location.reload();
+        });
+    }
+
+    function initITBoundingBoxes() {
+      const isEnabled = localStorage.getItem('it_bounding_boxes') !== 'false';
+      if (isEnabled) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = isEnabled);
+    }
+
+    function toggleITBoundingBoxes(checked) {
+      localStorage.setItem('it_bounding_boxes', checked ? 'true' : 'false');
+      if (checked) {
+        document.body.classList.add('show-it-bounding-boxes');
+      } else {
+        document.body.classList.remove('show-it-bounding-boxes');
+      }
+      const toggles = document.querySelectorAll('#itBoundingBoxToggle');
+      toggles.forEach(t => t.checked = checked);
+    }
+
+    document.addEventListener('DOMContentLoaded', initITBoundingBoxes);
+    initITBoundingBoxes();
+  </script>
+</body>
+</html>
